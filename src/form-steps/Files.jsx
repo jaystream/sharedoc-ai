@@ -10,14 +10,15 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
     list: [],
     shared: []
   });
-
+  const account = shareDoc?.wallet?.accounts[0];
   const web3 = shareDoc?.web3;
 
   const getFiles = async (web3) => {
     if(web3){
       const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
       let owner = await uploadContract.methods.getOwner().call();
-      let files = await uploadContract.methods.display(owner).call({from: owner});
+      console.log(account);
+      let files = await uploadContract.methods.display(account).call({from: account});
 
       setFiles((prev)=>{
         return {
