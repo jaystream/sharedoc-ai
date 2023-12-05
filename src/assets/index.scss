@@ -1,0 +1,71 @@
+.btn{
+    &.bg-blue-200{
+        background-color: #D5E8EE;
+        color: #5E9BC1;
+        &:hover, &.active{
+            background-color: #5E9BC1;
+            color: #D5E8EE;
+        }
+    }
+    &.bg-blue-400{
+        background-color: #3E72A6;
+        color: #fff;
+        &:hover, &.active{
+            background-color: #fff;
+            color: #3E72A6;
+            border: 1px solid #3E72A6;
+        }
+    }
+
+    &.bg-green-400{
+        background-color: #02ea11;
+        color: #fff;
+        &:hover, &.active{
+            background-color: #05c401;
+            color: #fff;
+        }
+    }
+
+    &.bg-green-200{
+        background-color: #C2ECD7;
+        color: #6CB382;
+        &:hover, &.active{
+            background-color: #6CB382;
+            color: #C2ECD7;
+        }
+    }
+    &.bg-orange-200{
+        background-color: #F2E2BF;
+        color: #B99B6A;
+        &:hover, &.active{
+            background-color: #B99B6A;
+            color: #F2E2BF;
+        }
+    }
+}
+
+.bg-gray-200{
+    background-color: #E8EDF0;
+}
+#sharedoc-ai{
+    input.form-control[type='text']{
+        padding: .375rem .75rem;
+        background-color: #fff;
+    }
+    .table > :not(caption) > * > *{
+        padding: .5rem .5rem;
+    }
+}
+/* input[type="file"]{
+    &.xwb-input{
+        background-color: #E8EDF0;
+        padding: 1rem;
+    }
+    &::-webkit-file-upload-button, ::-webkit-file-selector-button{
+        background-color: #A3A3A3;
+        border-radius: 5rem;
+        color: #fff;
+        
+    }
+   
+} */

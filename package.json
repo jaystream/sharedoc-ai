@@ -1,0 +1,38 @@
+{
+  "name": "sharedoc-ai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.11.1",
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@wordpress/scripts": "^26.17.0",
+    "dotenv-webpack": "^8.0.1",
+    "hardhat": "^2.19.1",
+    "mini-css-extract-plugin": "^2.7.6",
+    "web3": "^1.10.3"
+  },
+  "dependencies": {
+    "@chainsafe/libp2p-noise": "^13.0.3",
+    "@chainsafe/libp2p-yamux": "^5.0.3",
+    "@helia/unixfs": "^1.4.2",
+    "@libp2p/mplex": "^9.0.12",
+    "@libp2p/webrtc": "^3.2.11",
+    "@libp2p/websockets": "^7.0.13",
+    "@metamask/detect-provider": "^2.0.0",
+    "@wordpress/element": "^5.21.0",
+    "@wordpress/hooks": "^3.44.0",
+    "aws-sdk": "^2.1506.0",
+    "crypto-js": "^4.2.0",
+    "helia": "^2.1.0",
+    "react-hook-form": "^7.47.0"
+  }
+}

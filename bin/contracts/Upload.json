@@ -1,0 +1,241 @@
+{
+    "contractName": "Upload",
+    "abi": [
+        {
+            "inputs": [],
+            "name": "getOwner",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "owner",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ],
+    "metadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"getOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"c:/wamp64/www/alltrius/sharedoc.ai/wp-content/plugins/sharedoc-ai/contracts/Upload.sol\":\"Upload\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"c:/wamp64/www/alltrius/sharedoc.ai/wp-content/plugins/sharedoc-ai/contracts/Upload.sol\":{\"keccak256\":\"0x88135c4d984667f44a7865557d2a947b0449b7dc772a58a8d44c953f13153096\",\"license\":\"GPL-3.0\",\"urls\":[\"bzz-raw://8aa1a1508d2c9044c4e02aeb9f46ef43c9412ee90574af21c6e19d535676277f\",\"dweb:/ipfs/QmdYytX7yCjfH2RPdozArG6rWqtZRmj2yTL4M7R2hppapV\"]}},\"version\":1}",
+    "bytecode": "6080604052600080546001600160a01b03191633179055348015602157600080fd5b5060a8806100306000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063893d20e81460375780638da5cb5b146060575b600080fd5b6000546001600160a01b03165b6040516001600160a01b03909116815260200160405180910390f35b6000546044906001600160a01b03168156fea2646970667358221220a1fda5a03ff2898ffb3fdf7bd8587e8be7b538a5c47fec2ba1e656e3fd4898bf64736f6c63430008130033",
+    "deployedBytecode": "6080604052348015600f57600080fd5b506004361060325760003560e01c8063893d20e81460375780638da5cb5b146060575b600080fd5b6000546001600160a01b03165b6040516001600160a01b03909116815260200160405180910390f35b6000546044906001600160a01b03168156fea2646970667358221220a1fda5a03ff2898ffb3fdf7bd8587e8be7b538a5c47fec2ba1e656e3fd4898bf64736f6c63430008130033",
+    "sourceMap": "75:149:0:-:0;;;98:33;;;-1:-1:-1;;;;;;98:33:0;121:10;98:33;;;75:149;;;;;;;;;;;;;;;;",
+    "deployedSourceMap": "75:149:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;140:81;181:7;208:5;-1:-1:-1;;;;;208:5:0;140:81;;;-1:-1:-1;;;;;178:32:1;;;160:51;;148:2;133:18;140:81:0;;;;;;;98:33;;;;;-1:-1:-1;;;;;98:33:0;;",
+    "sourcePath": "c:/wamp64/www/alltrius/sharedoc.ai/wp-content/plugins/sharedoc-ai/contracts/Upload.sol",
+    "compiler": {
+        "name": "solc",
+        "version": "0.8.19+commit.7dd6d404"
+    },
+    "ast": {
+        "absolutePath": "c:/wamp64/www/alltrius/sharedoc.ai/wp-content/plugins/sharedoc-ai/contracts/Upload.sol",
+        "exportedSymbols": {
+            "Upload": [
+                14
+            ]
+        },
+        "id": 15,
+        "license": "GPL-3.0",
+        "nodeType": "SourceUnit",
+        "nodes": [
+            {
+                "id": 1,
+                "literals": [
+                    "solidity",
+                    ">=",
+                    "0.8",
+                    ".19",
+                    "<=",
+                    "0.8",
+                    ".22"
+                ],
+                "nodeType": "PragmaDirective",
+                "src": "37:34:0"
+            },
+            {
+                "abstract": false,
+                "baseContracts": [],
+                "canonicalName": "Upload",
+                "contractDependencies": [],
+                "contractKind": "contract",
+                "fullyImplemented": true,
+                "id": 14,
+                "linearizedBaseContracts": [
+                    14
+                ],
+                "name": "Upload",
+                "nameLocation": "84:6:0",
+                "nodeType": "ContractDefinition",
+                "nodes": [
+                    {
+                        "constant": false,
+                        "functionSelector": "8da5cb5b",
+                        "id": 5,
+                        "mutability": "mutable",
+                        "name": "owner",
+                        "nameLocation": "113:5:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 14,
+                        "src": "98:33:0",
+                        "stateVariable": true,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                        },
+                        "typeName": {
+                            "id": 2,
+                            "name": "address",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "98:7:0",
+                            "stateMutability": "nonpayable",
+                            "typeDescriptions": {
+                                "typeIdentifier": "t_address",
+                                "typeString": "address"
+                            }
+                        },
+                        "value": {
+                            "expression": {
+                                "id": 3,
+                                "name": "msg",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 4294967281,
+                                "src": "121:3:0",
+                                "typeDescriptions": {
+                                    "typeIdentifier": "t_magic_message",
+                                    "typeString": "msg"
+                                }
+                            },
+                            "id": 4,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberLocation": "125:6:0",
+                            "memberName": "sender",
+                            "nodeType": "MemberAccess",
+                            "src": "121:10:0",
+                            "typeDescriptions": {
+                                "typeIdentifier": "t_address",
+                                "typeString": "address"
+                            }
+                        },
+                        "visibility": "public"
+                    },
+                    {
+                        "body": {
+                            "id": 12,
+                            "nodeType": "Block",
+                            "src": "190:31:0",
+                            "statements": [
+                                {
+                                    "expression": {
+                                        "id": 10,
+                                        "name": "owner",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 5,
+                                        "src": "208:5:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    "functionReturnParameters": 9,
+                                    "id": 11,
+                                    "nodeType": "Return",
+                                    "src": "201:12:0"
+                                }
+                            ]
+                        },
+                        "functionSelector": "893d20e8",
+                        "id": 13,
+                        "implemented": true,
+                        "kind": "function",
+                        "modifiers": [],
+                        "name": "getOwner",
+                        "nameLocation": "149:8:0",
+                        "nodeType": "FunctionDefinition",
+                        "parameters": {
+                            "id": 6,
+                            "nodeType": "ParameterList",
+                            "parameters": [],
+                            "src": "157:2:0"
+                        },
+                        "returnParameters": {
+                            "id": 9,
+                            "nodeType": "ParameterList",
+                            "parameters": [
+                                {
+                                    "constant": false,
+                                    "id": 8,
+                                    "mutability": "mutable",
+                                    "name": "",
+                                    "nameLocation": "-1:-1:-1",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 13,
+                                    "src": "181:7:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "typeIdentifier": "t_address",
+                                        "typeString": "address"
+                                    },
+                                    "typeName": {
+                                        "id": 7,
+                                        "name": "address",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "181:7:0",
+                                        "stateMutability": "nonpayable",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "src": "180:9:0"
+                        },
+                        "scope": 14,
+                        "src": "140:81:0",
+                        "stateMutability": "view",
+                        "virtual": false,
+                        "visibility": "public"
+                    }
+                ],
+                "scope": 15,
+                "src": "75:149:0",
+                "usedErrors": []
+            }
+        ],
+        "src": "37:189:0"
+    },
+    "functionHashes": {
+        "getOwner()": "893d20e8",
+        "owner()": "8da5cb5b"
+    },
+    "gasEstimates": {
+        "creation": {
+            "codeDepositCost": "33600",
+            "executionCost": "24322",
+            "totalCost": "57922"
+        },
+        "external": {
+            "getOwner()": "2286",
+            "owner()": "2325"
+        }
+    }
+}
