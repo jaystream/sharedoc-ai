@@ -17,16 +17,27 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
     if(web3){
       const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
       let owner = await uploadContract.methods.getOwner().call();
-      console.log(account);
-      let files = await uploadContract.methods.display(account).call({from: account});
-
-      setFiles((prev)=>{
-        return {
-          ...prev,
-          list: files
-        }
+      console.log(account,owner);
+      await uploadContract.methods.display(account).call({from: owner}).then(data => {
+        console.log(data);
+        setFiles((prev)=>{
+          return {
+            ...prev,
+            list: data
+          }
+        });
       });
-      console.log(files);
+
+      const accessList = await uploadContract.methods.shareAccess().call(
+        {
+          from: owner
+        }, function(error, result){
+
+      });
+
+      
+
+      
       /* let trans = await web3.eth.getTransaction(transactionHash);
       
       const decoded = await web3.eth.abi.decodeParameters(

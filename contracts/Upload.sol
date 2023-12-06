@@ -54,7 +54,7 @@ contract Upload {
     }
 
     function display(address _user) public view returns(string[] memory){
-      require(_user==msg.sender || ownership[_user][msg.sender],"You don't have access from this file");
+      require(_user==msg.sender || ownership[msg.sender][_user],"You don't have access from this file");
       // || ownership[msg.sender][_user]
       return value[_user];
     }
