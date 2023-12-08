@@ -14,7 +14,8 @@ import { circuitRelayServer } from 'libp2p/circuit-relay'
 import { identifyService } from 'libp2p/identify'
 //import { delFile } from "../helper";
 import Upload from '../artifacts/contracts/Upload.sol/Upload.json'
- 
+import { Buffer } from "buffer";
+
 const AWS = require('aws-sdk');
 /* const {
   randomBytes,
@@ -25,7 +26,8 @@ const CryptoJS = require("crypto-js");
 const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   const [step1, setStep1] = useState({
     ipfsHash: '',
-    activeDocType: 'legal'
+    activeDocType: 'legal',
+    uploading: false
   });
 
   const { register, setError, reset, formState: { errors }, handleSubmit } = useForm();
@@ -47,9 +49,9 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
 
   const algorithm = "aes-256-cbc";
   const s3 = new AWS.S3({
-    apiVersion: '2006-03-01',
-    accessKeyId: '77132FEFA3A93A60813E',
-    secretAccessKey: 'VqXull2zVhL8pMsDV8UIb7kuuAsOZlPPOvJzFVWT',
+    apiVersion: '2023-12-08',
+    accessKeyId: process.env.REACT_APP_FILEBASE_KEY,
+    secretAccessKey: process.env.REACT_APP_FILEBASE_SECRET,
     endpoint: 'https://s3.filebase.com',
     region: 'us-east-1',
     signatureVersion: 'v4'
@@ -88,15 +90,21 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   
   const onSubmit= async (data) => {
     
+    setStep1((prev) => { 
+      return {
+        ...prev,
+        uploading: true
+      }
+    });
     const reader = new FileReader();
     let file = data.document[0];
     
     reader.onload = e => {
       var rawLog = reader.result;
       const wordArray = CryptoJS.lib.WordArray.create(rawLog);
-      const str = CryptoJS.enc.Hex.stringify(wordArray);
+      //const str = CryptoJS.enc.Hex.stringify(wordArray);
       const securityKey = data.file_key;
-      const ct = CryptoJS.AES.encrypt(str, securityKey);
+      const ct = CryptoJS.AES.encrypt(wordArray, securityKey);
       
       const ctstr = ct.toString();
 
@@ -104,7 +112,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
         Bucket: 'bucket1',
         Key: file.name,
         ContentType: file.type,
-        Body: ctstr,
+        Body: file,
         ACL: 'public-read',
         Metadata: {
           Doctype: step1.activeDocType, 
@@ -124,6 +132,12 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
           console.log('web3 processing...');
           uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
           uploadContract.methods.add(shareDoc?.provider?.selectedAddress, headers['x-amz-meta-cid']).send({from: shareDoc?.provider?.selectedAddress}).then((data)=>{
+            setStep1((prev) => { 
+              return {
+                ...prev,
+                uploading: false
+              }
+            });
             setShareDoc((prev) => { 
               return {
                 ...prev,
@@ -299,7 +313,9 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
                 type="submit"
                 className="btn bg-blue-400 rounded-pill px-3"
               >
-                Upload
+                Upload 
+                {step1?.uploading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+                
               </button>
               {/* <button
                 type="button"

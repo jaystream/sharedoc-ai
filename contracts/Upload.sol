@@ -3,25 +3,23 @@ pragma solidity >=0.8.19 <=0.8.22;
 import "hardhat/console.sol";
 
 contract Upload {
-    address private _owner;
+
     address[] internal _ownership;
     struct Access{
         address user; 
         bool access; //true or false
     }
-    constructor() {
-        _owner = msg.sender;
-    }
+
     mapping(address=>string[]) value;
     mapping(address=>mapping(address=>bool)) public ownership;
     mapping(address=>Access[]) accessList;
     mapping(address=>mapping(address=>bool)) previousData;
 
-    address public owner = msg.sender;
-
-    function getOwner() public view returns (address) {
-        return _owner;
+    function getSender() public view returns (address) {
+        return msg.sender;
     }
+
+  
 
     function allow(address user) public{//def
       ownership[msg.sender][user]=true; 
@@ -54,12 +52,12 @@ contract Upload {
     }
 
     function display(address _user) public view returns(string[] memory){
-      require(_user==msg.sender || ownership[msg.sender][_user],"You don't have access from this file");
+      require(_user==msg.sender || ownership[_user][msg.sender],"You don't have access from this file");
       // || ownership[msg.sender][_user]
       return value[_user];
     }
     
-  
+
 /*     function getOwnerships(address _user) external view returns(address[] memory){
       return accessList;
     } */

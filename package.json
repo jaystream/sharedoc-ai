@@ -32,6 +32,7 @@
     "@wordpress/hooks": "^3.44.0",
     "aws-sdk": "^2.1506.0",
     "crypto-js": "^4.2.0",
+    "file-saver": "^2.0.5",
     "helia": "^2.1.0",
     "react-hook-form": "^7.47.0"
   }
