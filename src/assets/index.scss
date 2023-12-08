@@ -1,12 +1,14 @@
 .btn{
     &.bg-blue-200{
-        background-color: #D5E8EE;
-        color: #5E9BC1;
+        background-color: #838383;
+        color: #fff;
         &:hover, &.active{
             background-color: #5E9BC1;
             color: #D5E8EE;
         }
     }
+
+    
     &.bg-blue-400{
         background-color: #3E72A6;
         color: #fff;
@@ -27,16 +29,16 @@
     }
 
     &.bg-green-200{
-        background-color: #C2ECD7;
-        color: #6CB382;
+        background-color: #838383;
+        color: #fff;
         &:hover, &.active{
             background-color: #6CB382;
             color: #C2ECD7;
         }
     }
     &.bg-orange-200{
-        background-color: #F2E2BF;
-        color: #B99B6A;
+        background-color: #838383;
+        color: #fff;
         &:hover, &.active{
             background-color: #B99B6A;
             color: #F2E2BF;
