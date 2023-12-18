@@ -156,7 +156,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
               {files?.list?.map((i,k)=> {
                 
                 return (<tr>
-                  <td>{i.post_id} - {i.title}</td>
+                  <td>{i.title}</td>
                   <td></td>
                 </tr>)
               })}
@@ -166,7 +166,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
         <div className="col-md-12">
           <h2 className="app-title">Files Shared to me</h2>
           
-          {files?.shared?.length && 
+          
             <table className="table table-bordered">
               <thead>
               <tr>
@@ -178,14 +178,14 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                 {
                   files?.shared?.map((i,k)=> {
                     return (<tr>
-                      <td>{i.post_id} - {i.title}</td>
+                      <td>{i.title}</td>
                       <td><a hash={i.title} href={i.url} onClick={downloadFile} target="_blank">Download</a></td>
                     </tr>)
                   })
                 }
               </tbody>
             </table>
-          }
+          
           
         </div>
       </div>

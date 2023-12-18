@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import { Web3 } from 'web3';
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +9,7 @@ import Upload from './artifacts/contracts/Upload.sol/Upload.json'
 import Step1 from "./form-steps/Step1";
 import Step2 from "./form-steps/Step2";
 import Files from "./form-steps/Files";
+import { swal2 } from "./helper";
 const App = () => {
   const [step, setStep] = useState(1);
   const [shareDoc, setShareDoc] = useState({
@@ -33,7 +34,7 @@ const App = () => {
     }
   })
 
- 
+  const emailRef = useRef(0);
   const getAccounts = async () => {
     const web3 = new Web3(Web3.givenProvider || process.env.REACT_APP_ETH_PROVIDER_URL);
     let accounts = await web3.eth.getAccounts();
@@ -98,6 +99,44 @@ const App = () => {
     console.log(addFile); */
 
   }
+
+  const viewMyFiles = e => {
+    e.preventDefault();
+    swal2({
+      title: 'Input your email to view your files',
+      preConfirm: data => {
+        let email = emailRef.current.value;
+        setShareDoc((prev) => { 
+          return {
+            ...prev,
+            step: 3,
+            email: email
+          }
+        });
+      },
+      showCancelButton: true,
+      confirmButtonText: 'View Files',
+      didClose: ()=>{
+
+      },
+      html: (
+        <>
+          
+            <div className="mb-3 p-3">
+              <input
+                ref={emailRef}
+                name="email"
+                placeholder="Input your email"
+                className={`form-control rounded-pill xwb-input`}
+                type="email"
+                id="email"
+              />
+          </div>
+          
+        </>
+      )
+    });
+  }
   
   useEffect( () => {
     getProvider();
@@ -121,17 +160,18 @@ const App = () => {
     <div>
       <div className="row">
         <div className="col-md-12">
-          {shareDoc?.wallet?.accounts?.length > 0 && (
-            <a className="btn btn-info float-end" onClick={(e)=>{
-              e.preventDefault();
-              setShareDoc((prev) => { 
-                return {
-                  ...prev,
-                  step: 3
-                }
-              });
-            }}>View Files</a>
-          )}
+          {shareDoc.step != 3 && <a className="btn btn-info float-end" onClick={viewMyFiles}>View Files</a>}
+            
+          {shareDoc.step == 3 && <a className="btn btn-info float-end" onClick={(e) => {
+            e.preventDefault();
+            setShareDoc((prev) => { 
+              return {
+                ...prev,
+                step: 1
+              }
+            });
+          }}>Home</a>}
+
         </div>
       </div>
       <div className="row" id="sharedoc-content">
