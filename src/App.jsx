@@ -1,6 +1,8 @@
 import React from "react";
 import { useState, useEffect } from '@wordpress/element';
-import Web3 from 'web3';
+import { Web3 } from 'web3';
+const fs = require('fs');
+const path = require('path');
 import detectEthereumProvider from '@metamask/detect-provider'
 import './assets/index.scss'
 import Upload from './artifacts/contracts/Upload.sol/Upload.json'
@@ -11,12 +13,17 @@ const App = () => {
   const [step, setStep] = useState(1);
   const [shareDoc, setShareDoc] = useState({
     provider: false,
+    account: null,
     wallet_balance: 0,
     doc_type: 'legal',
+    email:null,
     step: 1,
     web3: null,
+    contract: null,
     contractData: null,
     transactionHash: null,
+    block_number: null,
+    post_id: null,
     wallet: {
       accounts: []
     },
@@ -50,43 +57,50 @@ const App = () => {
   }
 
   const getProvider = async () => {
-    let detectedProvider = await detectEthereumProvider();
-    if (detectedProvider?.selectedAddress) {
-      
-      let web3 = new Web3(detectedProvider);
-      
-      let bal = await web3.eth.getBalance(detectedProvider?.selectedAddress);
-      bal = web3.utils.fromWei(bal, 'ether');
-      
-      setShareDoc((prev) => { 
-        return {
-          ...prev,
-          provider: detectedProvider,
-          wallet_balance: bal,
-          web3: web3
-        }
-      });
-      const accounts = await window.ethereum.request(         
-        { method: 'eth_accounts' }                            
-      )                                                       
-      refreshAccounts(accounts)                               
-      window.ethereum.on('accountsChanged', refreshAccounts)
-        /* const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
-        
-        let owner = await uploadContract.methods.owner.call();
-        console.log(owner); */
-    }
+    const web3 = new Web3(new Web3.providers.HttpProvider(`https://sepolia.infura.io/v3/${process.env.REACT_APP_INFURA_API_KEY}`));
+    
+    const privateKeyString = `0x${process.env.REACT_APP_ACCOUNT_PRIVATE_KEY}`;
+
+    const accountDetails = {
+      privateKey: privateKeyString,
+      address: process.env.REACT_APP_ACCOUNT_ADDRESS,
+    };
+
+    const account = web3.eth.accounts.wallet.add(privateKeyString).get(0);
+
+    const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
+    uploadContract.handleRevert = true;
+    
+    setShareDoc((prev) => { 
+      return {
+        ...prev,
+        account: account,
+        web3: web3,
+        contract: uploadContract
+      }
+    });
+
+    
+    /* const addFile = await uploadContract.methods.add(accountDetails?.address, 'QmbLvM7ELAsZ2ohD3N2Whk5w8xQMF4ppU4ozhgciyVZc8d').send({from: accountDetails?.address});
+    addFile.on('transactionHash', function(hash){
+      console.log(hash);
+    });
+    addFile.on('receipt', function(receipt){
+      console.log(receipt);
+    });
+    addFile.on('confirmation', function(confirmationNumber, receipt){
+      console.log(confirmationNumber, receipt);
+    });
+    addFile.on('error', function(error, receipt) {
+      console.log('error:',error);
+      console.log('receipt:',receipt);
+    });
+    console.log(addFile); */
+
   }
   
-  useEffect(() => {
+  useEffect( () => {
     getProvider();
-    //const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    //const web3 = new Web3(window.ethereum || "ws://localhost:8545");
-
-    return () => {                                              
-      window.ethereum?.removeListener('accountsChanged', refreshAccounts)
-    }
-    
   },[]);
 
   const updateWallet = async (accounts) => {
@@ -102,13 +116,7 @@ const App = () => {
     /* getProvider(); */
   }
   
-  const handleConnect = async () => {
-    let accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    updateWallet(accounts)
-    getProvider();
-  }
+ 
   return (
     <div>
       <div className="row">
@@ -127,9 +135,9 @@ const App = () => {
         </div>
       </div>
       <div className="row" id="sharedoc-content">
-        {shareDoc.step==1 && (<Step1 shareDoc={shareDoc} setShareDoc={setShareDoc} handleConnect={handleConnect} />)}
-        {shareDoc.step==2 && (<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} handleConnect={handleConnect} />)}
-        {shareDoc.step==3 && (<Files shareDoc={shareDoc} setShareDoc={setShareDoc} handleConnect={handleConnect} />)}
+        {shareDoc.step==1 && (<Step1 shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
+        {shareDoc.step==2 && (<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
+        {shareDoc.step==3 && (<Files shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
 
         
       </div>

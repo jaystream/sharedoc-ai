@@ -2,19 +2,12 @@ import React from "react";
 import PropTypes from "prop-types";
 import { useState, useEffect } from '@wordpress/element';
 import { useForm } from "react-hook-form";
-//import { unixfs } from '@helia/unixfs'
-//import { createHelia } from 'helia'
-import { createLibp2p } from 'libp2p'
-import { webSockets } from '@libp2p/websockets'
-import { webRTC } from '@libp2p/webrtc'
-import { noise } from '@chainsafe/libp2p-noise'
-import { mplex } from '@libp2p/mplex'
-import { yamux } from '@chainsafe/libp2p-yamux'
-import { circuitRelayServer } from 'libp2p/circuit-relay'
-import { identifyService } from 'libp2p/identify'
-//import { delFile } from "../helper";
+
 import Upload from '../artifacts/contracts/Upload.sol/Upload.json'
 import { Buffer } from "buffer";
+import axiosClient from "../axios";
+import { swal2 } from "../helper";
+const reactAppData = window.xwbVar || {}
 
 const AWS = require('aws-sdk');
 /* const {
@@ -31,62 +24,34 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   });
 
   const { register, setError, reset, formState: { errors }, handleSubmit } = useForm();
-  const web3 = shareDoc?.web3;
-  let uploadContract = null;
 
-
-  /* if(web3){
+  
+/*   if(web3){
     uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
     uploadContract.methods.add(shareDoc?.provider?.selectedAddress, 'QmbLvM7ELAsZ2ohD3N2Whk5w8xQMF4ppU4ozhgciyVZc8d');
     console.log(shareDoc?.provider?.selectedAddress);
-    
   } */
 
   const displayFiles = async address => {
-    let files = await uploadContract.methods.display(shareDoc?.provider?.selectedAddress).call();
-    return files;
+    try {
+      let files = await uploadContract.methods.getSender(address).call();
+      console.log(files);  
+    } catch (error) {
+      console.log('test1');
+      console.log(error);
+    }
+    
   }
 
-  const algorithm = "aes-256-cbc";
-  const s3 = new AWS.S3({
-    apiVersion: '2023-12-08',
-    accessKeyId: process.env.REACT_APP_FILEBASE_KEY,
-    secretAccessKey: process.env.REACT_APP_FILEBASE_SECRET,
-    endpoint: 'https://s3.filebase.com',
-    region: 'us-east-1',
-    signatureVersion: 'v4'
-  });
 
-  
-  const uintToString = (uintArray) => {
-    var decodedStr = new TextDecoder("utf-8").decode(uintArray);
-    return decodedStr;
+  const addFile = async(data) => {
+    
+    let contract = shareDoc.contract;
+    let walletAddress = shareDoc.account.address;
+    
+    let res = await contract.methods.addFile(data.email, data.post_id).send({from: walletAddress});
+    return res;
   }
-
-  const libp2pNode = async () => {
-    return await createLibp2p({
-      addresses: {
-        listen: [
-          '/ip4/0.0.0.0/tcp/0',
-          '/ip4/0.0.0.0/tcp/0/ws',
-          '/webrtc'
-        ]
-      },
-      transports: [
-        webSockets(),
-        webRTC()
-      ],
-      connectionEncryption: [noise()],
-      streamMuxers: [yamux(), mplex()],
-      services: {
-        identify: identifyService(),
-        relay: circuitRelayServer()
-      }
-    });
-
-  };
-
-  
   
   const onSubmit= async (data) => {
     
@@ -96,72 +61,99 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
         uploading: true
       }
     });
+    
     const reader = new FileReader();
     let file = data.document[0];
     
     reader.onload = e => {
       var rawLog = reader.result;
+
+      var hash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(rawLog));
+      let fileHash = hash.toString(CryptoJS.enc.Hex);
+
       const wordArray = CryptoJS.lib.WordArray.create(rawLog);
-      //const str = CryptoJS.enc.Hex.stringify(wordArray);
-      const securityKey = data.file_key;
-      const ct = CryptoJS.AES.encrypt(wordArray, securityKey);
-      
-      const ctstr = ct.toString();
-
-      const params = {
-        Bucket: 'bucket1',
-        Key: file.name,
-        ContentType: file.type,
-        Body: file,
-        ACL: 'public-read',
-        Metadata: {
-          Doctype: step1.activeDocType, 
-        }
+      const encrypted = CryptoJS.AES.encrypt(wordArray, data.file_key).toString();
+      var fileEnc = new Blob([encrypted]);
+      let fileName = file.name;
+      fileName = fileName.substr(0, fileName.lastIndexOf('.'))
+      let encFile = new File([fileEnc], fileHash+'.enc');
+      let formData = {
+        action: 'uploadFile',
+        nonce: reactAppData.nonce, 
+        docType: shareDoc.doc_type,
+        email: data.email,
+        file_key: data.file_key,
+        document: encFile,
+        fileHash: fileHash
       };
+      const headers = {
+        'Content-Type': 'multipart/form-data'
+      }
+      axiosClient.post(`${reactAppData.ajaxURL}`,formData,{
+        headers: headers
+      }).then( async response => {
+        let responseData = response.data;
 
-      const request = s3.putObject(params);
-      request.on('httpHeaders', (statusCode, headers) => {
-        setStep1((prev) => { 
-          return {
-            ...prev,
-            ipfsHash: headers['x-amz-meta-cid']
-          }
-        });
-
-        if(web3){
-          console.log('web3 processing...');
-          uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
-          uploadContract.methods.add(shareDoc?.provider?.selectedAddress, headers['x-amz-meta-cid']).send({from: shareDoc?.provider?.selectedAddress}).then((data)=>{
-            setStep1((prev) => { 
-              return {
-                ...prev,
-                uploading: false
-              }
-            });
-            setShareDoc((prev) => { 
-              return {
-                ...prev,
-                step: 2,
-                contractData:data,
-                transactionHash: data.transactionHash
-              }
-            });
-          });
-          
-        }
         
+        let res = await addFile({
+          post_id: responseData.data.post_id.toString(),
+          fileHash: fileHash,
+          email: data.email
+        });
+        let recordTransFormData = {
+          action: 'recordTransaction',
+          function: 'addFile',
+          email: data.email,
+          post_id: responseData.data.post_id,
+          title: res.transactionHash,
+          nonce: reactAppData.nonce,
+          fileHash: fileHash,
+          attachment: responseData.data.attachment_id,
+          receipt: res
+        };
+        
+        axiosClient.post(`${reactAppData.ajaxURL}`,recordTransFormData).then( async response => {
+          let responseTData = response.data;
+          setShareDoc((prev) => { 
+            return {
+              ...prev,
+              step: 2,
+              transactionHash: res.transactionHash,
+              post_id: responseTData.data.post_id,
+              block_number: res.blockNumber,
+              email: data.email
+            }
+          });
+        });
+        
+
+        /* swal2({
+          title: 'Uploaded!',
+          type: 'success',
+          message: responseData.data.message,
+          didClose: ()=>{
+  
+          }
+        }); */
+      }).catch(function (error) {
+        if(error.response){
+          
+          swal2({
+            type:'error',
+            message: error.response.data.data,
+          });
+        }
       });
-      request.send();
     };
     
     reader.readAsArrayBuffer(file);
   }
   
-  
-/*   if(web3)
-    console.log(displayFiles()); */
-
-  
+  useEffect( ()=>{
+    
+      
+  },[shareDoc])
+ 
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -236,6 +228,21 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
           </div>
         </div>
         <div className="mb-3">
+          <label className="mb-3">Email</label>
+          <div className="form-group">
+            <input
+              name="email"
+              className={`form-control rounded-pill xwb-input ${errors?.email ? 'border-danger': ''}`}
+              type="email"
+              id="email"
+              {...register('email',{
+                required: "This field is required!"
+              })}
+            />
+            {errors?.email && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.email?.message}}></small>}
+          </div>
+        </div>
+        <div className="mb-3">
           <label className="mb-3">Upload Document</label>
           <div className="form-group">
             <input
@@ -280,62 +287,17 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
           </div>
         </div>
         <div className="mb-3">
-
-          {window.ethereum?.isMetaMask &&
-            shareDoc?.wallet?.accounts?.length < 1 /* Updated */ && (
-              <button
-                type="button"
-                className="btn bg-green-400 rounded-pill px-3"
-                onClick={handleConnect}
-              >
-                Connect MetaMask
-              </button>
-            )}
-          {!window.ethereum && (
-            <div className="alert alert-warning">
-              Please install{" "}
-              <a target="_blank" href="https://metamask.io/download/">
-                metamask browser extension
-              </a>
-              !
-            </div>
-          )}
-
-          {shareDoc?.wallet?.accounts?.length > 0 && (
-            <>
-              <div className="mb-3">
-                Wallet Account: {shareDoc?.wallet?.accounts[0]}
-              </div>
-              <div className="mb-3">
-                Wallet Balance: {shareDoc?.wallet_balance} ETH
-              </div>
-              <button
-                type="submit"
-                className="btn bg-blue-400 rounded-pill px-3"
-              >
-                Upload 
-                {step1?.uploading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
-                
-              </button>
-              {/* <button
-                type="button"
-                onClick={(e)=>{
-                  delFile(
-                    {
-                      Key: 'S361.doc',
-                      Bucket: 'bucket1',
-                    }, (err,data) => {
-                      console.log(err,data);
-                    }
-                  )
-                }}
-                className="btn bg-blue-400 rounded-pill px-3"
-              >
-                Delete
-              </button> */}
-            </>
-          )}
+          <button
+            type="submit"
+            className="btn bg-blue-400 rounded-pill px-3"
+          >
+            Upload 
+            {step1?.uploading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+            
+          </button>
         </div>
+
+
       </form>
     </>
   );

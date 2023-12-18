@@ -1,3 +1,5 @@
+import Swal from "sweetalert2"
+import withReactContent from "sweetalert2-react-content"
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3({
   apiVersion: "2006-03-01",
@@ -45,6 +47,10 @@ export const wordToByteArray = (word, length) => {
    ba.push(word & xFF);
   return ba;
 }
+
+
+
+
 export const convertWordArrayToUint8Array = (wordArray) => {
   var arrayOfWords = wordArray.hasOwnProperty("words") ? wordArray.words : [];
   var length = wordArray.hasOwnProperty("sigBytes") ? wordArray.sigBytes : arrayOfWords.length * 4;
@@ -59,3 +65,26 @@ export const convertWordArrayToUint8Array = (wordArray) => {
   return uInt8Array;
 }
 export const getFile = (param) => {};
+
+export const swal2 = (args) => {
+  const MySwal = withReactContent(Swal);
+  let message = args.message || '';
+  let title = args.title || '';
+  let type = args.type;
+  let closed = args.closed;
+  let opened = args.opened;
+  return MySwal.fire({
+      title: title,
+      text: message,
+      icon: type,
+      didOpen: (args) => {
+          if(opened)
+              return opened(args);
+      },
+      didClose: (args) => {
+          if(closed)
+              return closed(args);
+      },
+      ...args
+  });
+}

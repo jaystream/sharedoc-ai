@@ -62,7 +62,8 @@ function pre($data = '', $die = false, $print_r = false)
 */
 define ( 'SDAI_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
 define ( 'SDAI_URL', trailingslashit( plugins_url( '/', __FILE__ ) ) );
-
+require_once SDAI_PATH . 'inc/functions.php';
+require_once SDAI_PATH . 'inc/init.php';
 
 add_action( 'admin_enqueue_scripts', 'sharedoc_admin_enqueue_scripts' );
 

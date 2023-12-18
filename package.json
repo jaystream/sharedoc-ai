@@ -13,12 +13,10 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^0.11.1",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@wordpress/scripts": "^26.17.0",
     "dotenv-webpack": "^8.0.1",
     "hardhat": "^2.19.1",
-    "mini-css-extract-plugin": "^2.7.6",
-    "web3": "^1.10.3"
+    "mini-css-extract-plugin": "^2.7.6"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^13.0.3",
@@ -33,7 +31,17 @@
     "aws-sdk": "^2.1506.0",
     "crypto-js": "^4.2.0",
     "file-saver": "^2.0.5",
+    "fs": "^0.0.1-security",
     "helia": "^2.1.0",
-    "react-hook-form": "^7.47.0"
+    "path": "^0.12.7",
+    "react-hook-form": "^7.47.0",
+    "sweetalert2": "^11.10.1",
+    "sweetalert2-react-content": "^5.0.7",
+    "web3": "^4.3.0"
+  },
+  "browser": {
+    "fs": false,
+    "path": false,
+    "os": false
   }
 }
