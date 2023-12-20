@@ -10,6 +10,9 @@ import Step1 from "./form-steps/Step1";
 import Step2 from "./form-steps/Step2";
 import Files from "./form-steps/Files";
 import { swal2 } from "./helper";
+import axiosClient from "./axios";
+const reactAppData = window.xwbVar || {}
+
 const App = () => {
   const [step, setStep] = useState(1);
   const [shareDoc, setShareDoc] = useState({
@@ -58,6 +61,16 @@ const App = () => {
   }
 
   const getProvider = async () => {
+
+    let response = await axiosClient.get(`${reactAppData.ajaxURL}`,{
+      params: {
+        action: 'getUser',
+        
+      }
+    });
+    let responseData = response.data;
+    let currentUser = responseData.data;
+    
     const web3 = new Web3(new Web3.providers.HttpProvider(`https://sepolia.infura.io/v3/${process.env.REACT_APP_INFURA_API_KEY}`));
     
     const privateKeyString = `0x${process.env.REACT_APP_ACCOUNT_PRIVATE_KEY}`;
@@ -77,6 +90,7 @@ const App = () => {
         ...prev,
         account: account,
         web3: web3,
+        email: currentUser.email,
         contract: uploadContract
       }
     });

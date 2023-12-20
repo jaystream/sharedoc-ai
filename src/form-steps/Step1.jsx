@@ -108,6 +108,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
           title: res.transactionHash,
           nonce: reactAppData.nonce,
           fileHash: fileHash,
+          docType: shareDoc.doc_type,
           attachment: responseData.data.attachment_id,
           receipt: res
         };
@@ -152,8 +153,8 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   useEffect( ()=>{
     
       
-  },[shareDoc])
- 
+  },[])
+  
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)}>

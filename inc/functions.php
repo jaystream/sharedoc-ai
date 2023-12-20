@@ -211,3 +211,18 @@ function xwb_posts_where( $where ) {
     $where = str_replace( "meta_key = 'email_permissions_$", "meta_key LIKE 'email_permissions_%", $where );
 	return $where;
 }
+
+
+add_action( 'wp_ajax_getUser', 'getUser' );
+function getUser()
+{
+    $user =  wp_get_current_user();
+    
+    $data = [
+        'email' => $user->user_email,
+        'user_login' => $user->user_login,
+        'display_name' => $user->display_name,
+        'caps' => $user->caps
+    ];
+    wp_send_json_success($data);
+}

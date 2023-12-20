@@ -157,7 +157,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                 
                 return (<tr>
                   <td>{i.title}</td>
-                  <td></td>
+                  <td><a hash={i.title} href={i.url} onClick={downloadFile} target="_blank">Download</a></td>
                 </tr>)
               })}
             </tbody>
