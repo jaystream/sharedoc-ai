@@ -62,14 +62,14 @@ const App = () => {
 
   const getProvider = async () => {
 
-    let response = await axiosClient.get(`${reactAppData.ajaxURL}`,{
+    /* let response = await axiosClient.get(`${reactAppData.ajaxURL}`,{
       params: {
         action: 'getUser',
         
       }
     });
     let responseData = response.data;
-    let currentUser = responseData.data;
+    let currentUser = responseData.data; */
     
     const web3 = new Web3(new Web3.providers.HttpProvider(`https://sepolia.infura.io/v3/${process.env.REACT_APP_INFURA_API_KEY}`));
     
