@@ -90,7 +90,7 @@ const App = () => {
         ...prev,
         account: account,
         web3: web3,
-        email: currentUser.email,
+        //email: currentUser.email,
         contract: uploadContract
       }
     });

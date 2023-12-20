@@ -100,6 +100,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
           fileHash: fileHash,
           email: data.email
         });
+        console.log(res);
         let recordTransFormData = {
           action: 'recordTransaction',
           function: 'addFile',
