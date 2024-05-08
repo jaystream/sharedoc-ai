@@ -11,12 +11,19 @@ import Step2 from "./form-steps/Step2";
 import Files from "./form-steps/Files";
 import { swal2 } from "./helper";
 import axiosClient from "./axios";
+import { BrowserRouter, Link, NavLink, Route, RouterProvider, Routes, useMatch } from "react-router-dom";
+import Home from "./Home";
+import EditFile from "./EditFile";
+import ReviewFile from "./ReviewFile";
+import Routing from "./components/Routing";
+/* import router from "./router"; */
 const reactAppData = window.xwbVar || {}
 
 const App = () => {
   const [step, setStep] = useState(1);
   const [shareDoc, setShareDoc] = useState({
     provider: false,
+    loading: true,
     account: null,
     wallet_balance: 0,
     doc_type: 'legal',
@@ -34,8 +41,10 @@ const App = () => {
     from: {
       document_type: 'legal',
       file: null
-    }
+    },
+    showSideMenu: true
   })
+
 
   const emailRef = useRef(0);
   const getAccounts = async () => {
@@ -62,16 +71,18 @@ const App = () => {
 
   const getProvider = async () => {
 
-    /* let response = await axiosClient.get(`${reactAppData.ajaxURL}`,{
+    let response = await axiosClient.get(`${reactAppData.ajaxURL}`,{
       params: {
         action: 'getUser',
         
       }
     });
     let responseData = response.data;
-    let currentUser = responseData.data; */
+    let currentUser = responseData.data;
     
-    const web3 = new Web3(new Web3.providers.HttpProvider(`https://sepolia.infura.io/v3/${process.env.REACT_APP_INFURA_API_KEY}`));
+    /* const web3 = new Web3(new Web3.providers.HttpProvider(`https://sepolia.infura.io/v3/${process.env.REACT_APP_INFURA_API_KEY}`));
+    
+    
     
     const privateKeyString = `0x${process.env.REACT_APP_ACCOUNT_PRIVATE_KEY}`;
 
@@ -83,15 +94,16 @@ const App = () => {
     const account = web3.eth.accounts.wallet.add(privateKeyString).get(0);
 
     const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
-    uploadContract.handleRevert = true;
+    uploadContract.handleRevert = true; */
     
     setShareDoc((prev) => { 
       return {
         ...prev,
-        account: account,
-        web3: web3,
-        //email: currentUser.email,
-        contract: uploadContract
+        //account: account,
+        //web3: web3,
+        loading: false,
+        email: currentUser.email,
+        //contract: uploadContract
       }
     });
 
@@ -153,6 +165,7 @@ const App = () => {
   }
   
   useEffect( () => {
+   
     getProvider();
   },[]);
 
@@ -169,33 +182,43 @@ const App = () => {
     /* getProvider(); */
   }
   
- 
+  
   return (
-    <div>
-      <div className="row">
-        <div className="col-md-12">
-          {shareDoc.step != 3 && <a className="btn btn-info float-end" onClick={viewMyFiles}>View Files</a>}
+    <>
+    {shareDoc.loading ? 
+      <i className="fa-solid fa-spinner fa-spin fa-2xl"></i>
+      :
+      ( shareDoc.email ? <BrowserRouter basename="/sharedoc.ai/share">
+        <div className="row">
+          {shareDoc.showSideMenu && 
+            <div className="col-md-3">
+              <nav className="nav flex-column">
+                <Link className="nav-link active" to={'/'}>Home</Link>
+                <Link className="nav-link" to={'/upload'}>Share</Link>
+              </nav>
+            </div>
+          }
+          
+          <div className="col">
+              <Routes>
+                <Route path="/" element={<Files shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="files/:blockHash" element={<EditFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="upload" element={<Step1 shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="users/:blockHash" element={<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="review/:blockHash" element={<ReviewFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+              </Routes>
             
-          {shareDoc.step == 3 && <a className="btn btn-info float-end" onClick={(e) => {
-            e.preventDefault();
-            setShareDoc((prev) => { 
-              return {
-                ...prev,
-                step: 1
-              }
-            });
-          }}>Home</a>}
-
+          </div>
         </div>
-      </div>
-      <div className="row" id="sharedoc-content">
-        {shareDoc.step==1 && (<Step1 shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
-        {shareDoc.step==2 && (<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
-        {shareDoc.step==3 && (<Files shareDoc={shareDoc} setShareDoc={setShareDoc} />)}
-
-        
-      </div>
-    </div>
+        </BrowserRouter> : 
+        <>
+          <a href={`${process.env.REACT_APP_BASE_URL}/login`}>Click here to login</a> or <a href={`${process.env.REACT_APP_BASE_URL}/start-free-trial`}>Register here</a>
+        </>
+        )
+      }
+    </>
+    
+    
   );
 };
 

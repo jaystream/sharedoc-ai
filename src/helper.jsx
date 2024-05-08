@@ -88,3 +88,51 @@ export const swal2 = (args) => {
       ...args
   });
 }
+
+export const removeTags = (str) => {
+  if ((str === null) || (str === ''))
+      return false;
+  else
+      str = str.toString();
+
+  // Regular expression to identify HTML tags in
+  // the input string. Replacing the identified
+  // HTML tag with a null string.
+  return str.replace(/(<([^>]+)>)/ig, '');
+}
+
+export const fixDiffs = (diffs = []) => {
+  var moveLTTag;
+  let fromOldStr = '';
+  let newStr = '';
+  let str = '';
+  let newDiffs = [];
+  
+  let action;
+  diffs.forEach(val => {
+    action = val[0];
+    
+    if(moveLTTag){
+      str = '<'+val[1];
+      moveLTTag = false;
+    }else{
+      str = val[1];
+    }
+    
+    
+    if(val[1].charAt(val[1].length -1) == '<'){
+      
+      str = str.slice(0, -1);
+      
+      moveLTTag = true;
+    }else{
+      moveLTTag = false;
+    }
+
+    newDiffs.push([action, str]);
+  
+  });
+  
+  return newDiffs;
+}
+

@@ -16,6 +16,7 @@
     "@wordpress/scripts": "^26.17.0",
     "dotenv-webpack": "^8.0.1",
     "hardhat": "^2.19.1",
+    "html-docx-ts": "^0.0.5",
     "mini-css-extract-plugin": "^2.7.6"
   },
   "dependencies": {
@@ -26,16 +27,24 @@
     "@libp2p/webrtc": "^3.2.11",
     "@libp2p/websockets": "^7.0.13",
     "@metamask/detect-provider": "^2.0.0",
+    "@tinymce/tinymce-react": "^4.3.2",
     "@wordpress/element": "^5.21.0",
     "@wordpress/hooks": "^3.44.0",
     "@wordpress/router": "^0.17.0",
     "aws-sdk": "^2.1506.0",
     "crypto-js": "^4.2.0",
+    "diff-match-patch": "^1.0.5",
     "file-saver": "^2.0.5",
     "fs": "^0.0.1-security",
     "helia": "^2.1.0",
+    "html-entities": "^2.4.0",
+    "localforage": "^1.10.0",
+    "mammoth": "^1.6.0",
+    "match-sorter": "^6.3.1",
     "path": "^0.12.7",
     "react-hook-form": "^7.47.0",
+    "react-router-dom": "^6.21.0",
+    "sort-by": "^1.2.0",
     "sweetalert2": "^11.10.1",
     "sweetalert2-react-content": "^5.0.7",
     "web3": "^4.3.0"
@@ -43,6 +52,8 @@
   "browser": {
     "fs": false,
     "path": false,
-    "os": false
+    "os": false,
+    "crypto": false,
+    "stream": false
   }
 }

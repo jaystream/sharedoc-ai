@@ -23,9 +23,11 @@ function add_custom_post_type($args) {
         "publicly_queryable" => true,
         "query_var" => true,
         "has_archive" => false, 
-        "menu_position" => 5,
+        "show_ui" => true,
         "supports" => array("title","editor","revisions", "thumbnail"),
         "show_in_rest" => true,
+        //"show_in_menu" => 'sdai-settings',
+        "show_in_menu" => 'edit.php?post_type=transactions',
         "taxonomies" => array("category")
     ); 
     register_post_type($args['slug'],$properties);
@@ -41,4 +43,13 @@ function add_custom_post_types() {
         'plural'=>'Transactions'
     );
     add_custom_post_type($args);
+}
+
+add_action("init", "xwb_rewrite_rule");
+function xwb_rewrite_rule() {
+    $page = get_page_by_path( 'share' );
+    add_rewrite_rule( 'share/files/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );add_rewrite_rule( 'share/review/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );
+    add_rewrite_rule( 'share/upload/?', 'index.php?page_id='.$page->ID, 'top' );
+    add_rewrite_rule( 'share/users/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );
+    flush_rewrite_rules();
 }

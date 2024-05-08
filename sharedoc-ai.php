@@ -90,6 +90,69 @@ function sharedoc_enqueue_script() {
     wp_enqueue_style('sdai-style', SDAI_URL.'/build/index.css');
 }
 
+register_activation_hook(
+	__FILE__,
+	'sd_install_dbtables'
+);
+
+
+function sd_install_dbtables()
+{
+    global $wpdb;
+
+	$table_bc = $wpdb->prefix . 'blockchain';
+    $table_bcedits = $wpdb->prefix . 'blockchain_edits';
+
+	
+	$charset_collate = $wpdb->get_charset_collate();
+
+	$sql = "CREATE TABLE IF NOT EXISTS `$table_bc` (
+        `id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `post_id` int(11) NULL DEFAULT 0,
+        `type` VARCHAR(50) NULL DEFAULT 'origin',
+        `author` INT NULL,
+        `action` VARCHAR(20) NOT NULL,
+        `char_pos` INT NULL,
+        `length` INT NULL DEFAULT '0',
+        `changes` MEDIUMTEXT NULL,
+        `n_version` int(11) DEFAULT 0,
+        `time` datetime DEFAULT current_timestamp(),
+        `block_hash` varchar(255) DEFAULT NULL,
+        `prev_block_hash` varchar(255) DEFAULT NULL,
+        `next_block_hash` varchar(255) DEFAULT NULL,
+        `merkle_root` varchar(255) DEFAULT NULL,
+        `nonce` varchar(150) DEFAULT NULL,
+        `status` TINYINT(3) NOT NULL DEFAULT '1',
+        `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
+        PRIMARY KEY (`id`)
+      ) $charset_collate;";
+
+        $sql .= "CREATE TABLE IF NOT EXISTS `$table_bcedits` (
+            `id` bigint(20) NOT NULL AUTO_INCREMENT,
+            `bc_id` int(11) NULL DEFAULT 0,
+            `type` VARCHAR(50) NULL DEFAULT 'suggestion',
+            `author` INT NULL,
+            `action` VARCHAR(20) NOT NULL,
+            `char_pos` INT NULL,
+            `length` INT NULL DEFAULT '0',
+            `changes` MEDIUMTEXT NULL,
+            `n_version` int(11) DEFAULT 0,
+            `time` datetime DEFAULT current_timestamp(),
+            `block_hash` varchar(255) DEFAULT NULL,
+            `prev_block_hash` varchar(255) DEFAULT NULL,
+            `next_block_hash` varchar(255) DEFAULT NULL,
+            `merkle_root` varchar(255) DEFAULT NULL,
+            `nonce` varchar(150) DEFAULT NULL,
+            `status` TINYINT(3) NOT NULL DEFAULT '1',
+            `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
+            PRIMARY KEY (`id`)
+        ) $charset_collate;";
+
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	dbDelta( $sql );
+
+}
+
 add_shortcode( 'sharedoc_ai', 'sdai_share' );
 function sdai_share( $atts ) {
 	?>
@@ -99,4 +162,16 @@ function sdai_share( $atts ) {
     <?php
 }
 
-require_once SDAI_PATH . 'classes/AdminMenu.php';
+
+
+
+add_action('plugins_loaded', 'load_classes');
+function load_classes()
+{
+    include SDAI_PATH . 'classes/AdminMenu.php';
+    require_once SDAI_PATH . 'vendor/autoload.php';
+    include SDAI_PATH . 'classes/Blockchain.php';
+    include SDAI_PATH . 'classes/Block.php';
+    
+    new AdminMenu();
+}

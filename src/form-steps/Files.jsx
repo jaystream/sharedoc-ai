@@ -7,6 +7,7 @@ import { convertWordArrayToUint8Array, swal2, uintToString, wordToByteArray } fr
 const CryptoJS = require("crypto-js");
 import { saveAs } from 'file-saver';
 import axiosClient from "../axios";
+import { Link, useNavigate } from "react-router-dom";
 const reactAppData = window.xwbVar || {}
 const AWS = require('aws-sdk');
 
@@ -23,6 +24,9 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
     shared: [],
     uploadContract: null
   });
+
+  const navigate = useNavigate();
+
   const account = shareDoc?.wallet?.accounts[0];
   const web3 = shareDoc?.web3;
   
@@ -37,23 +41,16 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
           let fileLink = e.target.getAttribute('href');
           let hash = e.target.getAttribute('hash');
           let fileKey = fileKeyRef.current.value;
-          
-
-          //saveAs(fileLink,'doc.doc');
 
           fetch(fileLink).then(async (res) => {
-            //console.log(res.body);
-            //FileSaver.saveAs(res.body, "doc.doc");
-            
-
             let enctext = await res.text();
-            //console.log(enctext);
+
             let decrypted = CryptoJS.AES.decrypt(enctext, fileKey);
-            console.log(decrypted)
+
             let typedArray = convertWordArrayToUint8Array(decrypted);
             
             let fileDec = new Blob([typedArray],{type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
-            console.log(fileDec);
+
             FileSaver.saveAs(fileDec, "doc.docx");
             return true;
           })
@@ -80,9 +77,14 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
           </>
         )
     });
+  }
 
-    
-    
+  const shareFile = (fileHash) => {
+    navigate('/users/'+fileHash);
+  }
+
+  const editFile = () => {
+
   }
   const getFiles = () => {
     let getFilesArgs = {
@@ -136,6 +138,12 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
   }
 
   useEffect( ()=>{
+    setShareDoc((prev) => { 
+      return {
+        ...prev,
+        showSideMenu: true
+      };
+    });
     getFiles();
     getShared();
   },[]);
@@ -148,18 +156,31 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
           <table className="table table-bordered">
             <thead>
               <tr>
-                <th>File Hash</th>
+                <th>Title</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {files?.list?.map((i,k)=> {
                 
-                return (<tr>
+                return (<tr key={k}>
                   <td>{i.title}</td>
-                  <td><a hash={i.title} href={i.url} onClick={downloadFile} target="_blank">Download</a></td>
+                  <td>
+                    <Link className="btn btn-sm btn-warning me-1" to={`files/${i.block_hash}`}>Edit</Link>
+                    <a href="" className="btn btn-sm btn-info me-1" onClick={(e) => {
+                      e.preventDefault();
+                      shareFile(i.block_hash);
+                    }}>Share</a>
+                    <Link className="btn btn-sm btn-success me-1" to={`review/${i.block_hash}`}>Review</Link>
+                    </td>
                 </tr>)
               })}
+              {
+                (files?.list?.length == 0) && 
+                <tr>
+                  <td colSpan={2}>No Records Found!</td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
@@ -170,19 +191,30 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
             <table className="table table-bordered">
               <thead>
               <tr>
-                <th>File Hash</th>
+                <th>Title</th>
                 <th>Action</th>
               </tr>
               </thead>
               <tbody>
                 {
                   files?.shared?.map((i,k)=> {
-                    return (<tr>
+                    
+                    return (<tr key={k}>
                       <td>{i.title}</td>
-                      <td><a hash={i.title} href={i.url} onClick={downloadFile} target="_blank">Download</a></td>
+                      <td>
+                        <Link className="btn btn-sm btn-warning me-1" to={`files/${i.title}`}>Edit</Link>
+                        <Link className="btn btn-sm btn-success me-1" to={`review/${i.block_hash}`}>Review</Link>
+                      </td>
                     </tr>)
                   })
                 }
+
+              {
+                (files?.shared?.length == 0) && 
+                <tr>
+                  <td colSpan={2}>No Records Found!</td>
+                </tr>
+              }
               </tbody>
             </table>
           

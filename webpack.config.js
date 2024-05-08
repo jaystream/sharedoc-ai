@@ -14,6 +14,9 @@ module.exports = env => {
       new Dotenv({
         path: '.env',
       }),
+      new webpack.DefinePlugin({
+        process: {env: {}}
+      }),
       new MiniCssExtractPlugin()
     ],
   }

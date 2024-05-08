@@ -6,15 +6,21 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from '@wordpress/element';
 import axiosClient from "../axios";
 import { swal2 } from "../helper";
+import { useNavigate, useParams } from "react-router-dom";
 const reactAppData = window.xwbVar || {}
 
 const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
+  let { fileHash } = useParams();
   const { register, setError, reset, formState: { errors }, handleSubmit } = useForm();
   const [step2, setStep2] = useState({
     file: null,
     sharing: false,
+    showTransaction: false,
+    transactionHash: null,
+    title: '',
     adding: false,
-    emails: []
+    emails: [],
+    post_id: null
   });
   const web3 = shareDoc?.web3;
   const transactionHash = shareDoc?.transactionHash || '0x6f611d80c19bbac5a361de53b69f65ff4382b1685e53e0b0e9ea8419aa3ca567'
@@ -34,6 +40,9 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
       name: 'Execute'
     }
   ];
+
+  const navigate = useNavigate();
+
 
   const getFiles = async (web3) => {
     
@@ -70,43 +79,49 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
       }
     });
     
-    let contract = shareDoc.contract;
-    let walletAddress = shareDoc.account.address;
-    contract.methods.allow(shareDoc.email, data.email).send(
-      {
-        from: walletAddress
-      }).then(result => {
-        
-        let addUserPermissionData = {
-          action: 'addPermissions',
-          post_id: shareDoc.post_id,
-          share_to_email: data.email,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          company: data.company,
-          permissions: data.permissions
+    let addUserPermissionData = {
+      action: 'addPermissions',
+      post_id: step2.post_id,
+      share_to_email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      company: data.company,
+      permissions: data.permissions
+    }
+    axiosClient.post(`${reactAppData.ajaxURL}`,addUserPermissionData).then( async response => {
+      
+      let responseData = response.data;
+      getEmails();
+      reset();
+      swal2({
+        title: 'Shared!',
+        type: 'success',
+        message: responseData.data.message,
+        didClose: ()=>{
+
         }
-        axiosClient.post(`${reactAppData.ajaxURL}`,addUserPermissionData).then( async response => {
-          
-          let responseData = response.data;
-          getEmails();
-          reset();
-          swal2({
-            title: 'Uploaded!',
-            type: 'success',
-            message: responseData.data.message,
-            didClose: ()=>{
-    
-            }
-          });
-        });
-        setStep2((prev) => { 
-          return {
-            ...prev,
-            adding: false
-          }
-        });
       });
+    }).catch(function (error) {
+      let errorData = error.response.data;
+      
+      let jsonError = error.toJSON();
+      //console.log(jsonError);
+      swal2({
+        title: 'Error!',
+        type: 'error',
+        message: errorData.data.message,
+        didClose: ()=>{
+
+        }
+      });
+    });
+
+    setStep2((prev) => { 
+      return {
+        ...prev,
+        adding: false
+      }
+    });
      
     
     
@@ -115,7 +130,7 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
   const getEmails = () => {
     axiosClient.get(`${reactAppData.ajaxURL}`,{ 
       params: { 
-        post_id: shareDoc.post_id,
+        post_id: step2.post_id,
         action: 'getEmails',
       } 
     }).then(response => {
@@ -128,9 +143,34 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
       });
     });
   }
+
+  const setFileInfo = (fileHash) =>
+  {
+    
+    axiosClient.get(`${reactAppData.ajaxURL}`,{ 
+      params: { 
+        file_hash: fileHash,
+        action: 'getTransactionByHash',
+      } 
+    }).then(response => {
+      let responseData = response.data;
+      let data = responseData?.data;
+
+      setStep2((prev) => { 
+        return {
+          ...prev,
+          transactionHash: data.block_hash,
+          title: data.title,
+          post_id: data.post_id,
+          emails: data.emails
+        }
+      });
+      
+    });
+  }
   useEffect( ()=>{
-    getEmails();
-  },[web3]);
+    setFileInfo(fileHash);
+  },[fileHash]);
   
   return (
     <>
@@ -145,7 +185,16 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
       <div className="row">
         <form onSubmit={handleSubmit(onSubmit)}>
           <h2 className="app-title">Step 2</h2>
-          <p>Transaction: {shareDoc?.transactionHash}</p>
+          <p>Block hash: <a className="text-decoration-none" href="" onClick={(e) => {
+            e.preventDefault();
+            setStep2((prev) => { 
+              return {
+                ...prev,
+                showTransaction: !step2.showTransaction
+              }
+            });
+          }}> {step2.showTransaction ? <span className="text-muted">{step2?.transactionHash}</span> : 'Blockchain Verified checkmark'} </a></p>
+          <p>Title: {step2?.title}</p>
           <div className="mb-3">
             <label htmlFor="wallet_to" className="form-label">Add user to share </label>
             <div className="row">
@@ -174,22 +223,7 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
                 })} className={`form-control rounded-pill xwb-input ${errors?.email ? 'border-danger': ''}`} id="email" />
             {errors?.email && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.email?.message}}></small>}
           </div>
-          {/* <div className='mb-3'>
-            <label className=''>Select Permission(s)</label>
-            {
-              
-              permissions?.map((val,index)=>{
-
-                return (
-                  <div key={index} className="form-check">
-                    <input id={`check-${val.key}`} value={val.key} {...register(`permissions[]`)} type="checkbox" className="form-check-input" />
-                    <label htmlFor={`check-${val.key}`} className="form-check-label">{val.name}</label>
-                  </div>
-                )
-              })
-            }
-            {errors?.permissions && <small className="input-errors text-red-500">{errors.permissions.message}</small>}
-          </div> */}
+          
           <div className="mb-3">
           <button
               type="submit"
@@ -206,6 +240,9 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
           <table className="table">
             <thead>
               <tr>
+                <th colSpan={2}><p className="text-center mb-0">File Access</p></th>
+              </tr>
+              <tr>
                 <th>Name</th>
                 <th>Email</th>
                 {/* <th>Permissions</th> */}
@@ -214,28 +251,10 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
             <tbody>
               {step2?.emails?.map((i,k)=>{
                 return (
-                  <>
-                  <tr>
+                  <tr key={k}>
                     <td>{`${i.first_name} ${i.last_name}`}</td>
                     <td>{i.email}</td>
-                    {/* <td>
-                      <ul>
-                      
-                      {
-                        permissions.map((val,k)=>{
-                          
-                          if(i?.permissions?.includes(val.key)){
-                            return (
-                              <li>{val.name}</li>
-                            )
-                          }
-                            
-                        })
-                      }
-                      </ul>
-                    </td> */}
                   </tr>
-                  </>
                 )
               })}
               {step2?.emails.length == 0 && <tr><td colSpan={2}>No Records Found!</td></tr>}
@@ -255,6 +274,7 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
                 step: 3
               }
             });
+            navigate('/')
           }}>View Files</a>
         </div>
       </div>

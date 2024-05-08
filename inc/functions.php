@@ -1,4 +1,7 @@
 <?php
+
+use classes\Blockchain;
+
 if (! function_exists('pre')) {
     /**
     * Run print_r or vardump php function
@@ -31,11 +34,22 @@ function uploadFile()
     if ( ! wp_verify_nonce( $_POST['nonce'], 'wp_rest' ) ) {
         wp_send_json_error ( 'Busted!', 403);
     }
+    global $wpdb;
+    
+    
+
+    
+    /* pre($bc->chain[0],1);
+    foreach ($bc->chain as $key => $value) {
+        pre($key,1);
+        pre($value,1);
+    } */
+    
     $file_name = $_FILES['document']['name'];
     $file_temp = $_FILES['document']['tmp_name'];
 
     $upload_dir = wp_upload_dir();
-    $image_data = file_get_contents( $file_temp );
+    $fileData = file_get_contents( $file_temp );
     $filename = basename( $file_name );
     
     
@@ -46,7 +60,7 @@ function uploadFile()
         $file = $upload_dir['basedir'] . '/' . $filename;
     }
     
-    file_put_contents( $file, $image_data );
+    file_put_contents( $file, $fileData );
     $wp_filetype = wp_check_filetype( $filename, null );
     
     $attachment = array(
@@ -60,12 +74,13 @@ function uploadFile()
     update_post_meta($attach_id, 'doc_type', $_POST['docType'] );
     update_post_meta($attach_id, 'from', $_POST['email'] );
     update_post_meta($attach_id, 'hash', $_POST['fileHash'] );
+    update_post_meta($attach_id, 'file_key', $_POST['file_key'] );
     require_once( ABSPATH . 'wp-admin/includes/image.php' );
     $attach_data = wp_generate_attachment_metadata( $attach_id, $file );
     wp_update_attachment_metadata( $attach_id, $attach_data );
 
     $new_post = array(
-        'post_title'   => $_POST['fileHash'], // Valid post name
+        'post_title'   => $_POST['title'], // Valid post name
         'post_status'  => 'publish', // Unslashed post data - Set the status of the new post to 'publish'
         'post_type'=>'transactions',
     );
@@ -73,9 +88,22 @@ function uploadFile()
     // Insert post into the database
     $post_id = wp_insert_post($new_post, true); // Use $wp_error set to true for error handling
     
+    update_field( 'file_hash', $_POST['fileHash'], $post_id );
+    update_field( 'file', $attach_id, $post_id );
+    update_field( 'email', $_POST['email'], $post_id );
+
+    $bc = new Blockchain($post_id, [
+        'file_hash' => $_POST['fileHash']
+    ]);
+    $block = $bc->getLatestBlock();
+
+    update_field( 'block_hash', $block->hash, $post_id );
+    update_field( 'block_number', $block->index, $post_id );
+
     wp_send_json_success([
         'attachment_id' => $attach_id,
         'post_id' => $post_id,
+        'block' => $block,
         'message' => 'File has been uploaded!'
     ]);
 }
@@ -131,6 +159,23 @@ function addPermissions()
 {
     
     $post_id = $_POST['post_id'];
+    
+    $emails = get_field('email_permissions',$post_id);
+    $existingEmails = [];
+    if($emails){
+        foreach($emails as $email){
+            $existingEmails[] = $email['email'];
+        }
+    }
+    if(in_array($_POST['share_to_email'], $existingEmails)){
+        wp_send_json_error([
+            'post_id' => $post_id,
+            'message' => 'The email '.$_POST['share_to_email'].' already exists!'
+        ], 401);
+    }
+
+    
+    
     $row = array(
         'email' => $_POST['share_to_email'],
         'first_name' => $_POST['first_name'],
@@ -140,6 +185,15 @@ function addPermissions()
     );
     
     add_row('email_permissions', $row,$post_id);
+
+    $to = $_POST['share_to_email'];
+    $subject = 'A file has been shared to you - Sharedoc AI';
+    $body = '<p>A new file has been shared to you.</p>
+    <p><a href="'.site_url('share/files/'.get_field('file_hash',$post_id)).'">Click here</a> to view and edit the file.</p>';
+    
+    $headers = array('Content-Type: text/html; charset=UTF-8');
+
+    wp_mail( $to, $subject, $body, $headers );
 
     wp_send_json_success([
         'post_id' => $post_id,
@@ -163,12 +217,16 @@ function getFiles()
     if( $the_query->have_posts() ){
         while( $the_query->have_posts() ) : $the_query->the_post();
             $attachement = get_field('file');
+            $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
+            
             $attachmentURL = wp_get_attachment_url($attachement->ID);
             
             $data[] = [
-                'title' => get_field('file_hash'),
+                'title' => get_the_title(),
+                'file_hash' => get_field('file_hash'),
                 'url' => $attachmentURL,
-                'post_id' => get_the_ID()
+                'block_hash' => get_field('block_hash'),
+                'post_id' => get_the_ID(),
             ];
         endwhile;
     }
@@ -192,14 +250,17 @@ function getShared()
         )
     );
     $the_query = new WP_Query( $args );
+    $data = [];
     if( $the_query->have_posts() ){
         while( $the_query->have_posts() ) : $the_query->the_post();
             $attachement = get_field('file');
             $attachmentURL = wp_get_attachment_url($attachement->ID);
             $data[] = [
-                'title' => get_field('file_hash'),
+                'title' => get_the_title(),
+                'file_hash' => get_field('file_hash'),
                 'url' => $attachmentURL,
-                'post_id' => get_the_ID()
+                'block_hash' => get_field('block_hash'),
+                'post_id' => get_the_ID(),
             ];
         endwhile;
     }
@@ -214,6 +275,7 @@ function xwb_posts_where( $where ) {
 
 
 add_action( 'wp_ajax_getUser', 'getUser' );
+add_action( 'wp_ajax_nopriv_getUser', 'getUser' );
 function getUser()
 {
     $user =  wp_get_current_user();
@@ -224,5 +286,170 @@ function getUser()
         'display_name' => $user->display_name,
         'caps' => $user->caps
     ];
+    wp_send_json_success($data);
+}
+
+add_action( 'wp_ajax_getFile', 'getFile' );
+//add_action( 'wp_ajax_nopriv_getFile', 'getFile' );
+function getFile()
+{
+    $block_hash = $_GET['block_hash'];
+    $hasPermission = false;
+    $currentUser = wp_get_current_user();
+    
+    /* $the_query = new WP_Query(array(
+        'posts_per_page'    => 1,
+        'post_type'     => 'transactions',
+        'meta_key'      => 'file_hash',
+        'meta_value'    => $fileHash
+    )); */
+
+    $args = array(
+        'numberposts'	=> -1,
+        'post_type'		=> 'transactions',
+        'meta_query'	=> array(
+            'relation' => 'AND',
+            array(
+                'key' => 'block_hash',
+                'value' => $block_hash,
+            ),
+            array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'email_permissions_$_email', // our repeater field post object
+                    'value' =>$currentUser->user_email,
+                    'compare' => 'LIKE'
+                ),
+                array(
+                    'key' => 'email', // our repeater field post object
+                    'value' =>$currentUser->user_email
+                )
+            )
+            
+        )
+    );
+    
+    $the_query = new WP_Query( $args );
+    
+    
+    $data =  [];
+    if( $the_query->have_posts() ){
+        while( $the_query->have_posts() ) : $the_query->the_post();
+            $attachement = get_field('file');
+            $attachmentURL = wp_get_attachment_url($attachement->ID);
+            $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
+            $fileKey = get_post_meta($attachement->ID, 'file_key',true);
+            $data = [
+                'title' => get_field('file_hash'),
+                'url' => $attachmentURL,
+                'post_id' => get_the_ID(),
+                'file_hash' => get_field('file_hash'),
+                'file_key' => $fileKey,
+                'isAuthorized' => true
+            ];
+        endwhile;
+    }else{
+        $data['isAuthorized'] = false;
+    }
+
+    wp_send_json_success($data);
+}
+
+add_action( 'wp_ajax_getTransactionByHash', 'getTransactionByHash' );
+function getTransactionByHash()
+{
+    $the_query = new WP_Query(array(
+        'posts_per_page'    => 1,
+        'post_type'     => 'transactions',
+        'meta_key'      => 'file_hash',
+        'meta_value'    => $_GET['file_hash']
+    ));
+    $data =  [];
+    if( $the_query->have_posts() ){
+        while( $the_query->have_posts() ) : $the_query->the_post();
+        $attachement = get_field('file');
+        $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
+        
+        $attachmentURL = wp_get_attachment_url($attachement->ID);
+        $emails = get_field('email_permissions');
+        $data = [
+            'title' => get_the_title(),
+            'file_hash' => get_field('file_hash'),
+            'url' => $attachmentURL,
+            'block_hash' => get_field('block_hash'),
+            'post_id' => get_the_ID(),
+            'block_number' => get_field('block_number'),
+            'email' => get_field('email'),
+            'emails' => ($emails ? $emails : [])
+        ];
+        endwhile;
+    }
+    wp_send_json_success($data);
+}
+
+
+
+add_action( 'wp_ajax_getFileHistory', 'getFileHistory' );
+
+function getFileHistory()
+{
+    if ( ! wp_verify_nonce( $_GET['nonce'], 'wp_rest' ) ) {
+        wp_send_json_error ( 'Busted!', 403);
+    }
+    global $wpdb;
+    $user = wp_get_current_user();
+    
+    $blockHash = $_GET['block_hash'];
+    $args = array(
+        'numberposts'	=> -1,
+        'post_type'		=> 'transactions',
+        'meta_query'	=> array(
+            array(
+                'key' => 'block_hash',
+                'value' => $blockHash,
+            )
+        )
+    );
+    
+    $the_query = new WP_Query( $args );
+    
+    $isAuthorized = false;
+    $data =  [];
+    if( $the_query->have_posts() ){
+        while( $the_query->have_posts() ) : $the_query->the_post();
+            $postID = get_the_ID();
+            $attachement = get_field('file');
+            $isOwner = (get_field('email') == $user->user_email);
+            $isAuthorized = $isOwner;
+
+            $emails = get_field('email_permissions');
+            $email_permissions = [];
+            foreach ($emails as $email) {
+                $email_permissions[] = $email['email'];
+            }
+            
+            if(!$isAuthorized){
+                $isAuthorized = in_array($user->user_email, $email);
+            }
+            $attachmentURL = wp_get_attachment_url($attachement->ID);
+            $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
+            $fileKey = get_post_meta($attachement->ID, 'file_key',true);
+
+            $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
+            
+            $data = [
+                'title' => get_the_title(),
+                'current_user_email' => $user->user_email,
+                'is_owner' => $isOwner,
+                'url' => $attachmentURL,
+                'post_id' => get_the_ID(),
+                'file_hash' => get_field('file_hash'),
+                'file_key' => $fileKey,
+                'isAuthorized' => $isAuthorized,
+                'histories' => []
+            ];
+        endwhile;
+    }
+
     wp_send_json_success($data);
 }

@@ -4,6 +4,19 @@ This project demonstrates a basic Hardhat use case. It comes with a sample contr
 
 Try running some of the following tasks:
 
+To start plugin development, run this command
+```shell
+cd wp-content/plugins/sharedoc-ai
+npm start
+```
+
+To start theme development, run this command
+```shell
+cd wp-content/themes/sharedoc/assets
+sass --watch scss/style.scss:css/style.css
+```
+
+To start blockchain developent, run this command
 ```shell
 npx hardhat help
 npx hardhat test

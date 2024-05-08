@@ -7,6 +7,7 @@ import Upload from '../artifacts/contracts/Upload.sol/Upload.json'
 import { Buffer } from "buffer";
 import axiosClient from "../axios";
 import { swal2 } from "../helper";
+import { useNavigate } from "react-router-dom";
 const reactAppData = window.xwbVar || {}
 
 const AWS = require('aws-sdk');
@@ -23,9 +24,9 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
     uploading: false
   });
 
-  const { register, setError, reset, formState: { errors }, handleSubmit } = useForm();
+  const { register, setError, reset, setValue,  formState: { errors }, handleSubmit } = useForm();
 
-  
+  const navigate = useNavigate();
 /*   if(web3){
     uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
     uploadContract.methods.add(shareDoc?.provider?.selectedAddress, 'QmbLvM7ELAsZ2ohD3N2Whk5w8xQMF4ppU4ozhgciyVZc8d');
@@ -43,7 +44,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
     
   }
 
-
+  
   const addFile = async(data) => {
     
     let contract = shareDoc.contract;
@@ -82,6 +83,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
         nonce: reactAppData.nonce, 
         docType: shareDoc.doc_type,
         email: data.email,
+        title: data.title,
         file_key: data.file_key,
         document: encFile,
         fileHash: fileHash
@@ -93,50 +95,8 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
         headers: headers
       }).then( async response => {
         let responseData = response.data;
-
-        
-        let res = await addFile({
-          post_id: responseData.data.post_id.toString(),
-          fileHash: fileHash,
-          email: data.email
-        });
-        console.log(res);
-        let recordTransFormData = {
-          action: 'recordTransaction',
-          function: 'addFile',
-          email: data.email,
-          post_id: responseData.data.post_id,
-          title: res.transactionHash,
-          nonce: reactAppData.nonce,
-          fileHash: fileHash,
-          docType: shareDoc.doc_type,
-          attachment: responseData.data.attachment_id,
-          receipt: res
-        };
-        
-        axiosClient.post(`${reactAppData.ajaxURL}`,recordTransFormData).then( async response => {
-          let responseTData = response.data;
-          setShareDoc((prev) => { 
-            return {
-              ...prev,
-              step: 2,
-              transactionHash: res.transactionHash,
-              post_id: responseTData.data.post_id,
-              block_number: res.blockNumber,
-              email: data.email
-            }
-          });
-        });
-        
-
-        /* swal2({
-          title: 'Uploaded!',
-          type: 'success',
-          message: responseData.data.message,
-          didClose: ()=>{
-  
-          }
-        }); */
+        let block = responseData.data?.block;
+        navigate('/users/'+fileHash);
       }).catch(function (error) {
         if(error.response){
           
@@ -152,7 +112,13 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   }
   
   useEffect( ()=>{
-    
+    setShareDoc((prev) => { 
+      return {
+        ...prev,
+        showSideMenu: true
+      };
+    });
+    setValue('email', shareDoc?.email)
       
   },[])
   
@@ -237,11 +203,28 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
               className={`form-control rounded-pill xwb-input ${errors?.email ? 'border-danger': ''}`}
               type="email"
               id="email"
+              readOnly={shareDoc?.email ? true : false}
               {...register('email',{
                 required: "This field is required!"
               })}
             />
             {errors?.email && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.email?.message}}></small>}
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className="mb-3">Title</label>
+          <div className="form-group">
+            <input
+              name="title"
+              className={`form-control rounded-pill xwb-input ${errors?.title ? 'border-danger': ''}`}
+              type="title"
+              id="title"
+              readOnly={shareDoc?.title ? true : false}
+              {...register('title',{
+                required: "This field is required!"
+              })}
+            />
+            {errors?.title && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.title?.message}}></small>}
           </div>
         </div>
         <div className="mb-3">
@@ -284,7 +267,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
                 required: "This field is required!"
               })}
             />
-            <div id="emailHelp" class="form-text">This is the key for your file. Give this to the person you want to share with.</div>
+            <div id="emailHelp" className="form-text">This is the key for your file. Give this to the person you want to share with.</div>
             {errors?.file_key && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.file_key?.message}}></small>}
           </div>
         </div>
@@ -298,8 +281,17 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
             
           </button>
         </div>
-
-
+        {/* <div className="mb-3">
+          <button
+            type="button"
+            onClick={()=> {
+              navigate('/')
+            }}
+            className="btn bg-blue-400 rounded-pill px-3"
+          >
+            Upload 
+          </button>
+        </div> */}
       </form>
     </>
   );

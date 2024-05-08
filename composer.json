@@ -1,0 +1,17 @@
+{
+    "name": "ssjsi/sharedoc-ai",
+    "autoload": {
+        "psr-4": {
+            "Ssjsi\\SharedocAi\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jay-r Simpron",
+            "email": "ssj.simpron@gmail.com"
+        }
+    ],
+    "require": {
+        "pleonasm/merkle-tree": "*"
+    }
+}

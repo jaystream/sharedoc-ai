@@ -20,7 +20,7 @@
     }
 
     &.bg-green-400{
-        background-color: #02ea11;
+        background-color: #1e7623;
         color: #fff;
         &:hover, &.active{
             background-color: #05c401;
@@ -48,6 +48,10 @@
 
 .bg-gray-200{
     background-color: #E8EDF0;
+}
+
+.text-gray{
+    color: #666666;
 }
 #sharedoc-ai{
     input.form-control[type='text'],
