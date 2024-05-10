@@ -4,9 +4,15 @@ import { useState, useEffect, useRef } from '@wordpress/element';
 import { Editor } from "@tinymce/tinymce-react";
 import { Link, useParams } from "react-router-dom";
 import axiosClient from "./axios";
-import { convertWordArrayToUint8Array, fixDiffs } from "./helper";
+import { convertWordArrayToUint8Array, fixDiffs, convertHTML } from "./helper";
 import DiffMatchPatch from 'diff-match-patch';
-import {decode} from 'html-entities';
+import HtmlDiff from 'htmldiff-js';
+
+
+
+
+
+import {decode, encode} from 'html-entities';
 import fs from 'fs';
 
 var mammoth = require("mammoth");
@@ -44,40 +50,75 @@ const EditFile = ({shareDoc, setShareDoc}) => {
   const updateForm = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+
     let newContent = editorRef.current.getContent();
     
     var ms_start = (new Date()).getTime();
+    
+    //let encodedOrigContent = convertHTML(editFile.origContent);
+    //let encodedNewContent = convertHTML(newContent);
+    
     let diff = dmp.diff_main(editFile.origContent, newContent);
-    var ms_end = (new Date()).getTime();
+    
+    console.log(diff);
+    
+    const diffhtml = HtmlDiff.execute(editFile.origContent, newContent);
+    setEditFile((prev) => { 
+      return {
+        ...prev,
+        finalContent: diffhtml
+      }
+    });
+    
+    
+
+
+    /* dmp.diff_cleanupSemantic(diff);
+    let diffHTML = dmp.diff_prettyHtml(diff);
+    diffHTML = diffHTML.replaceAll('&amp;','&');
+    diffHTML = decode(diffHTML); */
+    
+    
+
+    /* setEditFile((prev) => { 
+      return {
+        ...prev,
+        finalContent: diffHTML
+      }
+    }); */
+    
+    
+    /* var ms_end = (new Date()).getTime();
     var diffSeconds = (ms_end - ms_start) / 1000;
-    console.log(ms_end, ms_start);
+
+    
     let newdiff = fixDiffs(diff);
     
     let diff1 = newdiff;
     console.log(diff1);
-    //let diffJson = JSON.stringify(diff1);
     setTimeout(() => {
-      console.log(diff1);
-      dmp.diff_cleanupSemantic(diff1 );
-      let diffHTML = dmp.diff_prettyHtml(diff1 );
+      const dmp1 = new DiffMatchPatch();
+      dmp1.diff_cleanupSemantic(diff1 );
+      let diffHTML = dmp1.diff_prettyHtml(diff1 );
       //diffHTML = diffHTML.replace('&para;<br>','');
-      
+      console.log(diff1);
       
       diffHTML = decode(diffHTML, {level: 'html5'});
-      console.log('test2');
+      console.log(diffHTML);
       setEditFile((prev) => { 
         return {
           ...prev,
           finalContent: diffHTML
         }
       });
-    }, 5000);
-    
-    /* asBlob(editorRef.current.getContent()).then(blobData => {
-      saveAs(blobData, `testDocument.docx`) // save as docx document
-    }) */
+    }, 5000); */
+
+    //let diffJson = JSON.stringify(diff1);
     
   }
+
+  
   const getFile = () => {
     let getFileArgs = {
       params: {

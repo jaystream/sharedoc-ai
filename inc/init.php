@@ -33,6 +33,24 @@ function add_custom_post_type($args) {
     register_post_type($args['slug'],$properties);
 }
 
+function xwb_transactions_row_actions($actions, $post)
+{
+    if ( $post->post_type == "transactions" ) {
+
+        // Build your links URL.
+        $url = admin_url( 'admin.php?page=sdai_trans_history&post=' . $post->ID );
+        
+        $actions = array_merge( $actions, array(
+            'history' => sprintf( '<a href="%1$s">%2$s</a>',
+            esc_url( $url ), 
+            'History'
+            ) 
+        ));
+    }
+    return $actions;
+}
+add_filter( 'post_row_actions', 'xwb_transactions_row_actions', 10, 2 );
+
 
 add_action("init", "add_custom_post_types");
 function add_custom_post_types() {
@@ -41,6 +59,14 @@ function add_custom_post_types() {
         'slug'=>'transactions',
         'singular' => 'Transaction',
         'plural'=>'Transactions'
+    );
+    add_custom_post_type($args);
+
+    $args = array(
+        'name'=>'History',
+        'slug'=>'history',
+        'singular' => 'History',
+        'plural'=>'Histories'
     );
     add_custom_post_type($args);
 }

@@ -111,7 +111,7 @@ export const fixDiffs = (diffs = []) => {
   let action;
   diffs.forEach(val => {
     action = val[0];
-    
+        
     if(moveLTTag){
       str = '<'+val[1];
       moveLTTag = false;
@@ -128,7 +128,7 @@ export const fixDiffs = (diffs = []) => {
     }else{
       moveLTTag = false;
     }
-
+    //console.log(newDiffs);
     newDiffs.push([action, str]);
   
   });
@@ -136,3 +136,16 @@ export const fixDiffs = (diffs = []) => {
   return newDiffs;
 }
 
+export const convertHTML = (str) => {
+
+  const symbols = {
+    //"&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&apos;"
+  }
+  let newStr = str.replaceAll('<','&lt;');
+  newStr = newStr.replaceAll('>','&gt;');
+  return newStr;
+}
