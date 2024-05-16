@@ -42,20 +42,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-function pre($data = '', $die = false, $print_r = false)
-{
-    echo "<pre style='text-align: left;'>";
-    if ($print_r == true) {
-        print_r($data);
-    } else {
-        var_dump($data);
-    }
-    echo "</pre>";
-    if (!$die) {
-        die('die()');
-    }
-    
-}
 
 /**
 * Define Plugins Contants
@@ -102,9 +88,9 @@ function sd_install_dbtables()
 
 	$table_bc = $wpdb->prefix . 'blockchain';
     $table_bcedits = $wpdb->prefix . 'blockchain_edits';
-
-	
-	$charset_collate = $wpdb->get_charset_collate();
+    $table_bchistory = $wpdb->prefix . 'blockchain_history';
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
 	$sql = "CREATE TABLE IF NOT EXISTS `$table_bc` (
         `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -112,8 +98,6 @@ function sd_install_dbtables()
         `type` VARCHAR(50) NULL DEFAULT 'origin',
         `author` INT NULL,
         `action` VARCHAR(20) NOT NULL,
-        `char_pos` INT NULL,
-        `length` INT NULL DEFAULT '0',
         `changes` MEDIUMTEXT NULL,
         `n_version` int(11) DEFAULT 0,
         `time` datetime DEFAULT current_timestamp(),
@@ -126,29 +110,46 @@ function sd_install_dbtables()
         `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
         PRIMARY KEY (`id`)
       ) $charset_collate;";
+    dbDelta( $sql );
+    /* $sql .= "CREATE TABLE IF NOT EXISTS `$table_bchistory` (
+        `id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `bc_id` int(11) DEFAULT 0,
+        `type` varchar(50) DEFAULT 'suggestion',
+        `author` int(11) DEFAULT NULL,
+        `changes` longtext DEFAULT NULL,
+        `n_version` int(11) DEFAULT 0,
+        `time` datetime DEFAULT current_timestamp(),
+        `block_hash` varchar(255) DEFAULT NULL,
+        `prev_block_hash` varchar(255) DEFAULT NULL,
+        `next_block_hash` varchar(255) DEFAULT NULL,
+        `merkle_root` varchar(255) DEFAULT NULL,
+        `nonce` varchar(150) DEFAULT NULL,
+        `status` tinyint(3) NOT NULL DEFAULT 1,
+        `data` longtext DEFAULT NULL CHECK (json_valid(`data`)),
+        PRIMARY KEY (`id`)
+    ) $charset_collate;"; */
 
-        $sql .= "CREATE TABLE IF NOT EXISTS `$table_bcedits` (
-            `id` bigint(20) NOT NULL AUTO_INCREMENT,
-            `bc_id` int(11) NULL DEFAULT 0,
-            `type` VARCHAR(50) NULL DEFAULT 'suggestion',
-            `author` INT NULL,
-            `action` VARCHAR(20) NOT NULL,
-            `char_pos` INT NULL,
-            `length` INT NULL DEFAULT '0',
-            `changes` MEDIUMTEXT NULL,
-            `n_version` int(11) DEFAULT 0,
-            `time` datetime DEFAULT current_timestamp(),
-            `block_hash` varchar(255) DEFAULT NULL,
-            `prev_block_hash` varchar(255) DEFAULT NULL,
-            `next_block_hash` varchar(255) DEFAULT NULL,
-            `merkle_root` varchar(255) DEFAULT NULL,
-            `nonce` varchar(150) DEFAULT NULL,
-            `status` TINYINT(3) NOT NULL DEFAULT '1',
-            `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
-            PRIMARY KEY (`id`)
-        ) $charset_collate;";
+    $sql = "CREATE TABLE IF NOT EXISTS `$table_bcedits` (
+        `id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `bc_id` bigint(20) NOT NULL,
+        `type` varchar(50) DEFAULT 'suggestion',
+        `author` int(11) DEFAULT NULL,
+        `action` varchar(20) NOT NULL,
+        `char_pos` int(11) DEFAULT NULL,
+        `length` int(11) DEFAULT 0,
+        `changes` longtext DEFAULT NULL,
+        `n_version` int(11) DEFAULT 0,
+        `time` datetime DEFAULT current_timestamp(),
+        `status` tinyint(3) NOT NULL DEFAULT 1,
+        `data` longtext DEFAULT NULL CHECK (json_valid(`data`)),
+        PRIMARY KEY (`id`),
+        KEY `history_id` (`bc_id`)
+    ) $charset_collate;";
 
-	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    $sql .= "ALTER TABLE `$table_bcedits` ADD CONSTRAINT `fk_edits_blockchain_id` FOREIGN KEY (`bc_id`) REFERENCES `$table_bc`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;";
+
+    
+	
 	dbDelta( $sql );
 
 }

@@ -5,16 +5,18 @@ use Block;
 
 class Blockchain
 {
-    public array $chain = [];
+    public array $chains = [];
 
     public bool $hasChains = false;
     public function __construct($postID = false, $data = [])
-    {
-        $this->setChains($postID);
-        $this->chain[] = $this->createSDBlock($postID, $data);
+    {   
+        if($postID){
+            $this->setChains($postID);
+            $this->chains[] = $this->createSDBlock($postID, $data);
+        }
     }
 
-    private function setChains($postID = false){
+    public function setChains($postID = false){
         global $wpdb;
         if($postID){
             
@@ -25,7 +27,7 @@ class Blockchain
                 
                 foreach ($result as $key => $value) {
                     $block->setBlock($value->post_id, $value->n_version, $value->time, json_decode(stripslashes($value->data),true), $value->prev_block_hash, $value->block_hash);
-                    $this->chain[] = $block;
+                    $this->chains[] = $block;
                 }
                 return $postID;
             }
@@ -34,16 +36,19 @@ class Blockchain
         
     }
 
-    private function createSDBlock($postID = false, $data = []): Block
+    public function createSDBlock($postID = false, $data = []): Block
     {
         global $wpdb;
         
-        if(count($this->chain) > 0){
-            $block = $this->addBlock($postID, count($this->chain) + 1, time(), $data);
+        if(count($this->chains) > 0){
+            $block = $this->addBlock($postID, count($this->chains) + 1, time(), $data);
         }else{
             $block = new Block();
             $block->newBlock($postID, 0, time(), $data, '0');
         }
+        
+        
+        $wpdb->query('START TRANSACTION');
 
         $wpdb->insert($wpdb->prefix.'blockchain', array(
             'post_id' => $block->postID,
@@ -55,12 +60,28 @@ class Blockchain
             'data' => wp_json_encode($block->data),
             'merkle_root' => null
         ));
+        
+        $bcID = $wpdb->insert_id;
+        if(count($data['changes']) > 0){
+            foreach ($data['changes'] as $theChanged) {
+                $wpdb->insert($wpdb->prefix.'blockchain_edits', array(
+                    'bc_id' => $bcID,
+                    'author' => get_current_user_id(),
+                    'action' => $theChanged[0],
+                    'length' => strlen($theChanged[1]),
+                    'time' => date('Y-m-d H:i:s', $block->timestamp),
+                    'changes' => $theChanged[0],
+                ));
+            }
+        }
+
+        $wpdb->query( "COMMIT" );
         return $block;
     }
 
     public function getLatestBlock(): Block
     {
-        return $this->chain[count($this->chain) - 1];
+        return $this->chains[count($this->chains) - 1];
     }
 
     public function addBlock(int $postID, int $index, string $timestamp, $data)
@@ -70,16 +91,16 @@ class Blockchain
         $newBlock->newBlock($postID, $index, $timestamp, $data, $prevHash);
         $newBlock->previousHash = $prevHash;
         $newBlock->hash = $newBlock->calculateHash();
-        $this->chain[] = $newBlock;
+        $this->chains[] = $newBlock;
 
         return $newBlock;
     }
 
     public function isChainValid(): bool
     {
-        for ($i = 1, $chainLength = count($this->chain); $i < $chainLength; $i++) {
-            $currentBlock = $this->chain[$i];
-            $previousBlock = $this->chain[$i - 1];
+        for ($i = 1, $chainLength = count($this->chains); $i < $chainLength; $i++) {
+            $currentBlock = $this->chains[$i];
+            $previousBlock = $this->chains[$i - 1];
 
             if ($currentBlock->hash !== $currentBlock->calculateHash()) {
                 return false;

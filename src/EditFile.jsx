@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { Editor } from "@tinymce/tinymce-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import axiosClient from "./axios";
 import { convertWordArrayToUint8Array, fixDiffs, convertHTML } from "./helper";
 import DiffMatchPatch from 'diff-match-patch';
@@ -25,6 +25,7 @@ import { saveAs } from 'file-saver' //save the file
 
 const EditFile = ({shareDoc, setShareDoc}) => {
   const dmp = new DiffMatchPatch();
+  const navigate = useNavigate();
   dmp.Diff_Timeout = 1;
   let { blockHash } = useParams();
 
@@ -32,7 +33,8 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     isAuthorized: true,
     origContent: null,
     newContent: null,
-    finalContent: null
+    finalContent: null,
+    postID: null,
   });
 
   const editorRef = useRef(null);
@@ -51,6 +53,29 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     e.preventDefault();
     e.stopPropagation();
     
+    let newContent = editorRef.current.getContent();
+    let diff = dmp.diff_main(editFile.origContent, newContent);
+    let updateContentData = {
+      'action': 'updateContent',
+      'nonce': reactAppData.nonce,
+      'oldContent':editFile.origContent,
+      'newContent':newContent,
+      'postID': editFile.postID,
+      'edits': diff
+    };
+    axiosClient.post(`${reactAppData.ajaxURL}`,updateContentData).then(async response => {
+      if(response.data.success){
+        navigate('/review/'+blockHash);
+      }
+    }).catch(error => {
+
+    });
+  }
+
+  const previewHTML = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
 
     let newContent = editorRef.current.getContent();
     
@@ -59,10 +84,9 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     //let encodedOrigContent = convertHTML(editFile.origContent);
     //let encodedNewContent = convertHTML(newContent);
     
-    let diff = dmp.diff_main(editFile.origContent, newContent);
     
-    console.log(diff);
     
+        
     const diffhtml = HtmlDiff.execute(editFile.origContent, newContent);
     setEditFile((prev) => { 
       return {
@@ -133,7 +157,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
         setEditFile((prev) => { 
           return {
             ...prev,
-            isAuthorized: responseData.isAuthorized
+            isAuthorized: responseData.isAuthorized,
           }
         });
         
@@ -158,12 +182,14 @@ const EditFile = ({shareDoc, setShareDoc}) => {
         reader.addEventListener("loadend", () => {
           var rawLog = reader.result;
           mammoth.convertToHtml({arrayBuffer : rawLog})
-          .then(function(result){
+          .then(result => {
               var html = result.value; // The generated HTML
+              
               setEditFile((prev) => { 
                 return {
                   ...prev,
-                  origContent: html
+                  origContent: html,
+                  postID: responseData.post_id
                 }
               });
               var messages = result.messages; // Any messages, such as warnings during conversion
@@ -176,7 +202,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
 
         reader.readAsArrayBuffer(fileDec);
       })
-
+      
     });
   }
   useEffect(()=>{
@@ -215,16 +241,19 @@ const EditFile = ({shareDoc, setShareDoc}) => {
                 />
               </div>
             </div>
+            
+            <div className="row">
+              <div className="col-md-12">
+                <button type="button" className="btn btn-warning me-2" onClick={previewHTML}>Preview</button>
+                <button type="submit" className="btn btn-success">Update</button>
+              </div>
+            </div>
+
             <div className="row">
               <div className="col-md-12">
                 <div id="output" dangerouslySetInnerHTML={{__html: editFile.finalContent}}>
                   
                 </div>
-              </div>
-            </div>
-            <div className="row">
-              <div className="col-md-12">
-                <button type="submit" className="btn btn-success">Update</button>
               </div>
             </div>
           </form>

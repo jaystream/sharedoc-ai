@@ -1,5 +1,6 @@
 import Swal from "sweetalert2"
 import withReactContent from "sweetalert2-react-content"
+const CryptoJS = require("crypto-js");
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3({
   apiVersion: "2006-03-01",
@@ -148,4 +149,9 @@ export const convertHTML = (str) => {
   let newStr = str.replaceAll('<','&lt;');
   newStr = newStr.replaceAll('>','&gt;');
   return newStr;
+}
+
+export const generateHash = (data) => {
+  var hash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(rawLog));
+  let fileHash = hash.toString(CryptoJS.enc.Hex);
 }

@@ -436,6 +436,7 @@ function getFileHistory()
             $fileKey = get_post_meta($attachement->ID, 'file_key',true);
 
             $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
+
             
             $data = [
                 'title' => get_the_title(),
@@ -453,3 +454,32 @@ function getFileHistory()
 
     wp_send_json_success($data);
 }
+
+
+/**
+ * Update content from Edit File page
+ *
+ * @return void
+ */
+function updateContent()
+{
+    global $wpdb;
+    if ( ! wp_verify_nonce( $_POST['nonce'], 'wp_rest' ) ) {
+        wp_send_json_error ( 'Unauthorized access!', 403);
+    }
+
+    $user = wp_get_current_user();
+    extract($_POST);
+    $data = array(
+        'post_id' => $postID,
+        'author' => $user->ID,
+        'oldContent' => $oldContent,
+        'newContent' => $newContent,
+        'changes' => $edits,
+    );
+    $bc = new Blockchain();
+    $bc->setChains($postID);
+    $bc->createSDBlock($postID, $data);
+    wp_send_json_success(true);
+}
+add_action( 'wp_ajax_updateContent', 'updateContent' );
