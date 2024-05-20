@@ -67,7 +67,7 @@ class Blockchain
         ));
         
         $bcID = $wpdb->insert_id;
-        if(count($data['changes']) > 0){
+        if(isset($data['changes']) && count($data['changes']) > 0){
             foreach ($data['changes'] as $theChanged) {
                 $wpdb->insert($wpdb->prefix.'blockchain_edits', array(
                     'bc_id' => $bcID,
