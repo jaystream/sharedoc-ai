@@ -436,8 +436,44 @@ function getFileHistory()
             $fileKey = get_post_meta($attachement->ID, 'file_key',true);
 
             $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
+            $bc = new Blockchain();
+            $bc->setChains($postID);
+            $chains = $bc->chains;
 
-            
+            $fileEdits = [];
+            $changes = [];
+            foreach ($result as $key => $value) {
+                
+                $user = get_user_by('ID', $value->author);
+                $editResult = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain_edits WHERE bc_id = {$value->id}", OBJECT );
+                
+                foreach ($editResult as $key => $value) {
+                    $action = 0;
+                    if($value->action == 1)
+                        $action = 'Added';
+                    if($value->action == -1)
+                        $action = 'Deleted';
+
+
+                    if($value->action != 0){
+                        $changes[$value->author][] = [
+                            'text' => $value->changes,
+                            'action' => $action,
+                        ];
+                    }
+
+                    
+                    $fileEdits[$value->author][] = [
+                        'author_name' => $user->user_nicename,
+                        'action' => $action,
+                        'content' => $value->changes,
+                        'time' => $value->time,
+                        'is_current_user' => ($value->author == $user->ID)
+                    ]; 
+                }
+
+                
+            }
             $data = [
                 'title' => get_the_title(),
                 'current_user_email' => $user->user_email,
@@ -447,7 +483,9 @@ function getFileHistory()
                 'file_hash' => get_field('file_hash'),
                 'file_key' => $fileKey,
                 'isAuthorized' => $isAuthorized,
-                'histories' => []
+                'chains' => $chains,
+                'fileEdits' => $fileEdits,
+                'changes' => $changes
             ];
         endwhile;
     }

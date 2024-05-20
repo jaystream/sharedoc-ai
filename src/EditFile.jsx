@@ -55,6 +55,8 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     
     let newContent = editorRef.current.getContent();
     let diff = dmp.diff_main(editFile.origContent, newContent);
+    console.log(diff);
+    return false;
     let updateContentData = {
       'action': 'updateContent',
       'nonce': reactAppData.nonce,

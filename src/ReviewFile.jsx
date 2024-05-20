@@ -4,6 +4,9 @@ import { Link, matchRoutes, useLocation, useNavigate, useParams, useRoutes } fro
 import { useState, useEffect, useRef } from '@wordpress/element';
 import axiosClient from './axios';
 import { convertWordArrayToUint8Array } from './helper';
+import HtmlDiff from 'htmldiff-js';
+import DiffMatchPatch from 'diff-match-patch';
+
 const reactAppData = window.xwbVar || {}
 const CryptoJS = require("crypto-js");
 var mammoth = require("mammoth");
@@ -13,6 +16,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
   const [content, setContent] = useState({
     title: '',
     originalContent: '',
+    comparedContent: '',
     histories: [],
     isAuthorized: false,
   });
@@ -57,10 +61,31 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                 File doesn't exists or You do not have permission on it.
               </div>`;
               }
+
+              let oldContent = html;
+              let newContent = '';
+              let matchedContent = '';
+              const dmp = new DiffMatchPatch();
+              let patch = '';
+              fileData?.chains?.map((v,i) => {
+                //console.log(v);
+                if(v.index > 1){
+                  console.log(v?.data?.changes);
+                  v?.data?.changes?.map((a,b) => {
+                    console.log(a);
+                  });
+                  //patch = dmp.patch_make(v?.data?.changes); 
+                  //console.log(patch);
+                }
+              });
+              //htmldiff.execute(html, newContent);
               setContent((prev) => { 
                 return {
                   ...prev,
                   originalContent: html,
+                  oldContent: oldContent,
+                  newContent: newContent,
+                  matchedContent: matchedContent,
                   isAuthorized: isAuthorized,
                   blockHash: blockHash
                 }
@@ -73,12 +98,12 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
 
         reader.readAsArrayBuffer(fileDec);
       })
-
-
+      
       setContent((prev) => {
         return {
           ...prev,
-          title: fileData.title
+          title: fileData.title,
+          histories: fileData.histories
         }
       })
     });
@@ -104,14 +129,42 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         }} dangerouslySetInnerHTML={{__html: content.originalContent}}>
         </div>
       </div>
-      <div className="col-md-4">
+      <div className="col-md-4 border-start">
+        <h3>Suggestions</h3>
         {
-          (content.isAuthorized) &&
-            (content?.histories?.length == 0 && 
+          
+          (content.isAuthorized &&
+            <div>
+              {
+              (content?.histories?.length == 0 && 
               <div className="alert alert-danger" role="alert">
                 No history found!
               </div>
-            )
+              )
+              }
+
+              {
+                (content?.histories?.length > 0 && 
+                  <div>
+                    
+                  <ul className="list-group list-group-flush">
+                    {
+                      content?.histories?.map((val,i) => {
+                        console.log(val);
+                        return (
+                          <li key={i} className='list-group-item'>{i}</li>
+                        )
+                      })
+                    }
+                  </ul>
+                  </div>
+                )
+
+              }
+            </div>
+          )
+
+          
         }
       </div>
     </div>

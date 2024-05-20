@@ -22,13 +22,16 @@ class Blockchain
             
             $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
             if($result){
-                $block = new Block();
                 $this->hasChains = true;
                 
                 foreach ($result as $key => $value) {
+                    $block = new Block();
                     $block->setBlock($value->post_id, $value->n_version, $value->time, json_decode(stripslashes($value->data),true), $value->prev_block_hash, $value->block_hash);
+                    
                     $this->chains[] = $block;
+                    
                 }
+                
                 return $postID;
             }
             
@@ -39,12 +42,13 @@ class Blockchain
     public function createSDBlock($postID = false, $data = []): Block
     {
         global $wpdb;
-        
+        $type = 'origin';
         if(count($this->chains) > 0){
             $block = $this->addBlock($postID, count($this->chains) + 1, time(), $data);
+            $type = 'suggestion';
         }else{
             $block = new Block();
-            $block->newBlock($postID, 0, time(), $data, '0');
+            $block->newBlock($postID, 1, time(), $data, '0');
         }
         
         
@@ -53,6 +57,7 @@ class Blockchain
         $wpdb->insert($wpdb->prefix.'blockchain', array(
             'post_id' => $block->postID,
             'n_version' => $block->index,
+            'type' => $type,
             'time' => date('Y-m-d H:i:s', $block->timestamp),
             'block_hash' => $block->hash,
             'author' => get_current_user_id(),
@@ -70,7 +75,7 @@ class Blockchain
                     'action' => $theChanged[0],
                     'length' => strlen($theChanged[1]),
                     'time' => date('Y-m-d H:i:s', $block->timestamp),
-                    'changes' => $theChanged[0],
+                    'changes' => $theChanged[1],
                 ));
             }
         }
