@@ -5,7 +5,7 @@ const Dotenv = require('dotenv-webpack');
 module.exports = env => {
   
   const dotenvFilename = env.production ? '.production.env' : '.development.env';
-  console.log(env.production);
+  console.log(env.production, dotenvFilename);
   return {
     ...defaults,
     externals: {
