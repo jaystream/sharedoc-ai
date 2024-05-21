@@ -185,7 +185,7 @@ const App = () => {
   
   return (
     <>
-    {console.log(process.env.REACT_APP_BASE_NAME)}
+    {console.log(process.env.REACT_APP_BASE_NAME, process.env.NODE_ENV)}
     {shareDoc.loading ? 
       <i className="fa-solid fa-spinner fa-spin fa-2xl"></i>
       :
