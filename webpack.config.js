@@ -3,7 +3,9 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require('webpack');
 const Dotenv = require('dotenv-webpack');
 module.exports = env => {
-  console.log(env)
+  const isProduction = env.NODE_ENV === 'production';
+  const dotenvFilename = isProduction ? '.env.production' : '.env.development';
+  
   return {
     ...defaults,
     externals: {
@@ -12,7 +14,7 @@ module.exports = env => {
     },
     plugins: [
       new Dotenv({
-        path: '.env',
+        path: dotenvFilename,
       }),
       new webpack.DefinePlugin({
         process: {env: {}}
