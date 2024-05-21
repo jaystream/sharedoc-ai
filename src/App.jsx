@@ -188,7 +188,7 @@ const App = () => {
     {shareDoc.loading ? 
       <i className="fa-solid fa-spinner fa-spin fa-2xl"></i>
       :
-      ( shareDoc.email ? <BrowserRouter basename="/sharedoc.ai/share">
+      ( shareDoc.email ? <BrowserRouter basename="/share">
         <div className="row">
           {shareDoc.showSideMenu && 
             <div className="col-md-3">
