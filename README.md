@@ -10,11 +10,22 @@ cd wp-content/plugins/sharedoc-ai
 npm start
 ```
 
+To commit and push the changes from plugin.
+Do not run npm start before adding into repository
+```shell
+npm run build
+git add .
+git commit -m 'your message'
+git push
+```
+
 To start theme development, run this command
 ```shell
 cd wp-content/themes/sharedoc/assets
 sass --watch scss/style.scss:css/style.css
 ```
+
+
 
 To start blockchain developent, run this command
 ```shell

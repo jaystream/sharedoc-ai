@@ -20,7 +20,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
     histories: [],
     isAuthorized: false,
   });
-  let { blockHash } = useParams();
+  let { fileHash } = useParams();
   const navigate = useNavigate();
   useEffect( () => {
     setShareDoc((prev) => { 
@@ -34,7 +34,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
       params: {
         action: 'getFileHistory',
         nonce: reactAppData.nonce, 
-        block_hash: blockHash
+        file_hash: fileHash
       }
     }).then(response => {
       let responseData = response.data;
@@ -87,7 +87,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                   newContent: newContent,
                   matchedContent: matchedContent,
                   isAuthorized: isAuthorized,
-                  blockHash: blockHash
+                  fileHash: fileHash
                 }
               });
           })
@@ -125,7 +125,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
     <div className="row">
       <div className="col-md-8">
         <div className="doc-content" onClick={(e)=> {
-          navigate('/files/'+content.blockHash);
+          navigate('/files/'+content.fileHash);
         }} dangerouslySetInnerHTML={{__html: content.originalContent}}>
         </div>
       </div>

@@ -95,7 +95,9 @@ const App = () => {
 
     const uploadContract = new web3.eth.Contract(Upload.abi,process.env.REACT_APP_CONTRACT_ADDRESS);
     uploadContract.handleRevert = true; */
-    
+    if(!currentUser.email){
+      window.location.replace(`${process.env.REACT_APP_BASE_URL}/login`);
+    }
     setShareDoc((prev) => { 
       return {
         ...prev,
@@ -107,6 +109,7 @@ const App = () => {
       }
     });
 
+    
     
     /* const addFile = await uploadContract.methods.add(accountDetails?.address, 'QmbLvM7ELAsZ2ohD3N2Whk5w8xQMF4ppU4ozhgciyVZc8d').send({from: accountDetails?.address});
     addFile.on('transactionHash', function(hash){
@@ -185,7 +188,7 @@ const App = () => {
   
   return (
     <>
-    {console.log(process.env.REACT_APP_BASE_NAME, process.env.NODE_ENV)}
+    
     {shareDoc.loading ? 
       <i className="fa-solid fa-spinner fa-spin fa-2xl"></i>
       :
@@ -203,17 +206,17 @@ const App = () => {
           <div className="col">
               <Routes>
                 <Route path="/" element={<Files shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
-                <Route path="files/:blockHash" element={<EditFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="files/:fileHash" element={<EditFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
                 <Route path="upload" element={<Step1 shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
-                <Route path="users/:blockHash" element={<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
-                <Route path="review/:blockHash" element={<ReviewFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="users/:fileHash" element={<Step2 shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
+                <Route path="review/:fileHash" element={<ReviewFile shareDoc={shareDoc} setShareDoc={setShareDoc} />} />
               </Routes>
             
           </div>
         </div>
         </BrowserRouter> : 
         <>
-          <a href={`${process.env.REACT_APP_BASE_URL}/login`}>Click here to login</a> or <a href={`${process.env.REACT_APP_BASE_URL}/start-free-trial`}>Register here</a>
+          {/* <a href={`${process.env.REACT_APP_BASE_URL}/login`}>Click here to login</a> or <a href={`${process.env.REACT_APP_BASE_URL}/start-free-trial`}>Register here</a> */}
         </>
         )
       }

@@ -27,8 +27,8 @@ const EditFile = ({shareDoc, setShareDoc}) => {
   const dmp = new DiffMatchPatch();
   const navigate = useNavigate();
   dmp.Diff_Timeout = 1;
-  let { blockHash } = useParams();
-
+  let { fileHash } = useParams();
+  
   const [editFile, setEditFile] = useState({
     isAuthorized: true,
     origContent: null,
@@ -67,7 +67,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     };
     axiosClient.post(`${reactAppData.ajaxURL}`,updateContentData).then(async response => {
       if(response.data.success){
-        navigate('/review/'+blockHash);
+        navigate('/review/'+fileHash);
       }
     }).catch(error => {
 
@@ -149,7 +149,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     let getFileArgs = {
       params: {
         action: 'getFile',
-        block_hash: blockHash
+        file_hash: fileHash
       }
     }
     axiosClient.get(`${reactAppData.ajaxURL}`,getFileArgs).then( response => {

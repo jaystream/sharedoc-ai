@@ -22,7 +22,11 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
   const [files, setFiles] = useState({
     list: [],
     shared: [],
-    uploadContract: null
+    uploadContract: null,
+    viewDocs: {
+      myDoc: 'All',
+      sharedDoc: 'All'
+    }
   });
 
   const navigate = useNavigate();
@@ -86,10 +90,27 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
   const editFile = () => {
 
   }
+
+  const publishUnpublish = (post_id, current_status) => {
+    
+    let getFilesArgs = {
+      action: 'publishUnpublish',
+      post_id: post_id,
+      status: current_status,
+      nonce: reactAppData.nonce, 
+    }
+    axiosClient.post(`${reactAppData.ajaxURL}`,getFilesArgs).then( response => {
+      let list = response.data;
+      getFiles();
+      
+    });
+  }
+
   const getFiles = () => {
     let getFilesArgs = {
       params: { 
         action: 'getFiles',
+        show: files?.viewDocs?.myDoc,
         email: shareDoc?.email,
         post_id: shareDoc?.post_id
       } 
@@ -111,6 +132,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
       params: { 
         action: 'getShared',
         email: shareDoc?.email,
+        show: files?.viewDocs?.sharedDoc,
         post_id: shareDoc?.post_id
       } 
     }
@@ -146,13 +168,69 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
     });
     getFiles();
     getShared();
-  },[]);
+  },[files.viewDocs]);
   
   return (
     <>
       <div className="row">
         <div className="col-md-12 mb-5">
-          <h2 className="app-title">My Files</h2>
+          <div className="row">
+            <div className="col-md-8">
+                <h2 className="app-title">My Documents</h2>
+            </div>
+            <div className="col-md-4">
+              <div className="btn-group view-docs-filter float-end">
+                <button className="btn btn-sm" type="button">
+                  View Docs
+                </button>
+                <button type="button" className="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i className="fa-solid fa-caret-down"></i> {files?.viewDocs?.myDoc}
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end">
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: 'All',
+                          sharedDoc: prev.viewDocs.sharedDoc
+                        }
+                      }
+                    });
+                  }} className={`dropdown-item ${files.viewDocs?.myDoc=='All' ? 'active': ''}`} href="#">All</a></li>
+
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: 'Published',
+                          sharedDoc: prev.viewDocs.sharedDoc
+                        }
+                      }
+                    });
+
+                  }} className={`dropdown-item ${files.viewDocs?.myDoc=='Published' ? 'active': ''}`} href="#">Published</a></li>
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: 'Unpublished',
+                          sharedDoc: prev.viewDocs.sharedDoc
+                        }
+                      }
+                    });
+                    
+                  }}  className={`dropdown-item ${files.viewDocs?.myDoc=='Unpublished' ? 'active': ''}`} href="#">Unpublished</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
           <table className="table table-bordered">
             <thead>
               <tr>
@@ -166,12 +244,35 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                 return (<tr key={k}>
                   <td>{i.title}</td>
                   <td>
-                    <Link className="btn btn-sm btn-warning me-1" to={`files/${i.block_hash}`}>Edit</Link>
-                    <a href="" className="btn btn-sm btn-info me-1" onClick={(e) => {
-                      e.preventDefault();
-                      shareFile(i.block_hash);
-                    }}>Share</a>
-                    <Link className="btn btn-sm btn-success me-1" to={`review/${i.block_hash}`}>Review</Link>
+                  <div className="btn-group">
+                    <button type="button" className="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                      Actions
+                    </button>
+                    <ul className="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <Link className="dropdown-item" to={`files/${i.file_hash}`}>Edit</Link>
+                      </li>
+                      <li>
+                        <a href="" className="dropdown-item" onClick={(e) => {
+                          e.preventDefault();
+                          shareFile(i.file_hash);
+                        }}>Share</a>
+                      </li>
+
+                      <li><Link className="dropdown-item" to={`review/${i.file_hash}`}>Review</Link></li>
+                      
+                      <li>
+                        <a href="" onClick={(e) => {
+                          e.preventDefault();
+                          publishUnpublish(i.post_id, i.status)
+                        }} className="dropdown-item">
+                          {i.status=='publish' ? 'Unpublish':'Publish'}
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+
+                    
                     </td>
                 </tr>)
               })}
@@ -185,40 +286,108 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
           </table>
         </div>
         <div className="col-md-12">
-          <h2 className="app-title">Files Shared to me</h2>
-          
-          
-            <table className="table table-bordered">
-              <thead>
-              <tr>
-                <th>Title</th>
-                <th>Action</th>
-              </tr>
-              </thead>
-              <tbody>
-                {
-                  files?.shared?.map((i,k)=> {
-                    
-                    return (<tr key={k}>
-                      <td>{i.title}</td>
-                      <td>
-                        <Link className="btn btn-sm btn-warning me-1" to={`files/${i.title}`}>Edit</Link>
-                        <Link className="btn btn-sm btn-success me-1" to={`review/${i.block_hash}`}>Review</Link>
-                      </td>
-                    </tr>)
-                  })
-                }
+          <div className="row">
+            <div className="col-md-8">
+              <h2 className="app-title">Shared Documents</h2>
+            </div>
+            <div className="col-md-4">
+            <div className="btn-group view-docs-filter float-end">
+                <button className="btn btn-sm" type="button">
+                  View Shared
+                </button>
+                <button type="button" className="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i className="fa-solid fa-caret-down"></i> {files?.viewDocs?.sharedDoc}
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end">
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: prev.viewDocs.myDoc,
+                          sharedDoc: 'All'
+                        }
+                      }
+                    });
+                  }} className={`dropdown-item ${files?.viewDocs?.shareDoc=='All' ? 'active': ''}`} href="#">All</a></li>
 
-              {
-                (files?.shared?.length == 0) && 
-                <tr>
-                  <td colSpan={2}>No Records Found!</td>
-                </tr>
-              }
-              </tbody>
-            </table>
-          
-          
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: prev.viewDocs.myDoc,
+                          sharedDoc: 'Published',
+                        }
+                      }
+                    });
+
+                  }} className={`dropdown-item ${files.viewDocs?.sharedDoc=='Published' ? 'active': ''}`} href="#">Published</a></li>
+                  <li><a onClick={(e)=>{
+                    e.preventDefault();
+                    setFiles((prev)=>{
+                      return {
+                        ...prev,
+                        viewDocs:{
+                          myDoc: prev.viewDocs.myDoc,
+                          sharedDoc: 'Unpublished'
+                        }
+                      }
+                    });
+                    
+                  }}  className={`dropdown-item ${files.viewDocs?.sharedDoc=='Unpublished' ? 'active': ''}`} href="#">Unpublished</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-md-12">
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Action</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                    {
+                      files?.shared?.map((i,k)=> {
+                        
+                        return (<tr key={k}>
+                          <td>{i.title}</td>
+                          <td>
+                          
+
+                            <div className="btn-group">
+                              <button type="button" className="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                Actions
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <Link className="dropdown-item" to={`files/${i.file_hash}`}>Edit</Link>
+                                </li>
+                                <li><Link className="dropdown-item" to={`review/${i.file_hash}`}>Review</Link></li>
+                              </ul>
+                            </div>
+                          </td>
+                          
+                        </tr>)
+                      })
+                    }
+
+                  {
+                    (files?.shared?.length == 0) && 
+                    <tr>
+                      <td colSpan={2}>No Records Found!</td>
+                    </tr>
+                  }
+                  </tbody>
+              </table>
+            </div>
+            
+          </div>
         </div>
       </div>
     </>

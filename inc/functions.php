@@ -190,6 +190,13 @@ function addPermissions()
     $subject = 'A file has been shared to you - Sharedoc AI';
     $body = '<p>A new file has been shared to you.</p>
     <p><a href="'.site_url('share/files/'.get_field('file_hash',$post_id)).'">Click here</a> to view and edit the file.</p>';
+
+    $user = get_user_by('email',$to);
+    if(!$user){
+        $currUser = wp_get_current_user();
+        $invitehash = password_hash($currUser->ID,PASSWORD_DEFAULT);
+        $body .= '<p>If you do not have an account yet, please <a href="'.site_url('start-free-trial/?invite='.$invitehash.'&email='.$to).'">Click here</a> to register.</p>';
+    }
     
     $headers = array('Content-Type: text/html; charset=UTF-8');
 
@@ -206,12 +213,26 @@ add_action( 'wp_ajax_getFiles', 'getFiles' );
 add_action( 'wp_ajax_nopriv_getFiles', 'getFiles' );
 function getFiles()
 {
+    $postStatus = 'any';
+    switch ($_GET['show']) {
+        case 'Published':
+            $postStatus = 'publish';
+            break;
+        case 'Unpublished':
+            $postStatus = 'draft';
+            break;
+        
+        default:
+            $postStatus = 'any';
+            break;
+    }
     
     $the_query = new WP_Query(array(
         'posts_per_page'    => -1,
         'post_type'     => 'transactions',
         'meta_key'      => 'email',
-        'meta_value'    => $_GET['email']
+        'meta_value'    => $_GET['email'],
+        'post_status' => $postStatus
     ));
     $data =  [];
     if( $the_query->have_posts() ){
@@ -227,6 +248,7 @@ function getFiles()
                 'url' => $attachmentURL,
                 'block_hash' => get_field('block_hash'),
                 'post_id' => get_the_ID(),
+                'status' => get_post_status()
             ];
         endwhile;
     }
@@ -237,10 +259,23 @@ add_action( 'wp_ajax_getShared', 'getShared' );
 add_action( 'wp_ajax_nopriv_getShared', 'getShared' );
 function getShared()
 {
-    
+    $postStatus = 'any';
+    switch ($_GET['show']) {
+        case 'Published':
+            $postStatus = 'publish';
+            break;
+        case 'Unpublished':
+            $postStatus = 'draft';
+            break;
+        
+        default:
+            $postStatus = 'any';
+            break;
+    }
     $args = array(
         'numberposts'	=> -1,
         'post_type'		=> 'transactions',
+        'post_status' => $postStatus,
         'meta_query'	=> array(
             array(
                 'key' => 'email_permissions_$_email', // our repeater field post object
@@ -261,6 +296,7 @@ function getShared()
                 'url' => $attachmentURL,
                 'block_hash' => get_field('block_hash'),
                 'post_id' => get_the_ID(),
+                'status' => get_post_status()
             ];
         endwhile;
     }
@@ -293,7 +329,7 @@ add_action( 'wp_ajax_getFile', 'getFile' );
 //add_action( 'wp_ajax_nopriv_getFile', 'getFile' );
 function getFile()
 {
-    $block_hash = $_GET['block_hash'];
+    $file_hash = $_GET['file_hash'];
     $hasPermission = false;
     $currentUser = wp_get_current_user();
     
@@ -310,8 +346,8 @@ function getFile()
         'meta_query'	=> array(
             'relation' => 'AND',
             array(
-                'key' => 'block_hash',
-                'value' => $block_hash,
+                'key' => 'file_hash',
+                'value' => $file_hash,
             ),
             array(
                 'relation' => 'OR',
@@ -399,14 +435,14 @@ function getFileHistory()
     global $wpdb;
     $user = wp_get_current_user();
     
-    $blockHash = $_GET['block_hash'];
+    $fileHash = $_GET['file_hash'];
     $args = array(
         'numberposts'	=> -1,
         'post_type'		=> 'transactions',
         'meta_query'	=> array(
             array(
-                'key' => 'block_hash',
-                'value' => $blockHash,
+                'key' => 'file_hash',
+                'value' => $fileHash,
             )
         )
     );
@@ -521,3 +557,24 @@ function updateContent()
     wp_send_json_success(true);
 }
 add_action( 'wp_ajax_updateContent', 'updateContent' );
+
+function publishUnpublish()
+{
+    global $wpdb;
+    if ( ! wp_verify_nonce( $_POST['nonce'], 'wp_rest' ) ) {
+        wp_send_json_error ( 'Unauthorized access!', 403);
+    }
+
+    $postID = $_POST['post_id'];
+    $status = $_POST['status'];
+    $newStatus = ($status == 'publish' ? 'draft' : 'publish');
+    
+    wp_update_post(array(
+        'ID'    =>  $postID,
+        'post_status'   =>  $newStatus
+    ));
+    
+    wp_send_json_success(true);
+    
+}
+add_action( 'wp_ajax_publishUnpublish', 'publishUnpublish' );

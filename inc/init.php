@@ -74,8 +74,9 @@ function add_custom_post_types() {
 add_action("init", "xwb_rewrite_rule");
 function xwb_rewrite_rule() {
     $page = get_page_by_path( 'share' );
-    add_rewrite_rule( 'share/files/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );add_rewrite_rule( 'share/review/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );
+    add_rewrite_rule( 'share/files/([^/]*)/?', 'index.php?page_id='.$page->ID.'&fileHash=$matches[1]', 'top' );
+    add_rewrite_rule( 'share/review/([^/]*)/?', 'index.php?page_id='.$page->ID.'&fileHash=$matches[1]', 'top' );
     add_rewrite_rule( 'share/upload/?', 'index.php?page_id='.$page->ID, 'top' );
-    add_rewrite_rule( 'share/users/([^/]*)/?', 'index.php?page_id='.$page->ID.'&blockHash=$matches[1]', 'top' );
+    add_rewrite_rule( 'share/users/([^/]*)/?', 'index.php?page_id='.$page->ID.'&fileHash=$matches[1]', 'top' );
     flush_rewrite_rules();
 }

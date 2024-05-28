@@ -56,6 +56,8 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
   
   const onSubmit= async (data) => {
     
+    let file_key = (Math.random() + 1).toString(36).substring(7);
+    
     setStep1((prev) => { 
       return {
         ...prev,
@@ -71,31 +73,33 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
 
       var hash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(rawLog));
       let fileHash = hash.toString(CryptoJS.enc.Hex);
-
       const wordArray = CryptoJS.lib.WordArray.create(rawLog);
-      const encrypted = CryptoJS.AES.encrypt(wordArray, data.file_key).toString();
+      const encrypted = CryptoJS.AES.encrypt(wordArray, file_key).toString();
+      
       var fileEnc = new Blob([encrypted]);
       let fileName = file.name;
       fileName = fileName.substr(0, fileName.lastIndexOf('.'))
       let encFile = new File([fileEnc], fileHash+'.enc');
+      
       let formData = {
         action: 'uploadFile',
         nonce: reactAppData.nonce, 
         docType: shareDoc.doc_type,
-        email: data.email,
+        email: shareDoc.email,
         title: data.title,
-        file_key: data.file_key,
+        file_key: file_key,
         document: encFile,
         fileHash: fileHash
       };
       const headers = {
         'Content-Type': 'multipart/form-data'
       }
+      
       axiosClient.post(`${reactAppData.ajaxURL}`,formData,{
         headers: headers
       }).then( async response => {
         let responseData = response.data;
-        let block = responseData.data?.block;
+        
         navigate('/users/'+fileHash);
       }).catch(function (error) {
         if(error.response){
@@ -195,22 +199,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
             <input type="hidden" {...register("client_id")} />
           </div>
         </div>
-        <div className="mb-3">
-          <label className="mb-3">Email</label>
-          <div className="form-group">
-            <input
-              name="email"
-              className={`form-control rounded-pill xwb-input ${errors?.email ? 'border-danger': ''}`}
-              type="email"
-              id="email"
-              readOnly={shareDoc?.email ? true : false}
-              {...register('email',{
-                required: "This field is required!"
-              })}
-            />
-            {errors?.email && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.email?.message}}></small>}
-          </div>
-        </div>
+        
         <div className="mb-3">
           <label className="mb-3">Title</label>
           <div className="form-group">
@@ -255,7 +244,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
             {errors?.document && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.document?.message}}></small>}
           </div>
         </div>
-        <div className="mb-3">
+        {/* <div className="mb-3">
           <label className="mb-3">File Key</label>
           <div className="form-group">
             <input
@@ -270,7 +259,7 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
             <div id="emailHelp" className="form-text">This is the key for your file. Give this to the person you want to share with.</div>
             {errors?.file_key && <small className="input-errors text-danger" dangerouslySetInnerHTML={{__html: errors.file_key?.message}}></small>}
           </div>
-        </div>
+        </div> */}
         <div className="mb-3">
           <button
             type="submit"

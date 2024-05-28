@@ -79,3 +79,9 @@
     }
    
 } */
+
+.view-docs-filter{
+    .dropdown-toggle::after{
+        display: none;
+    }
+}
