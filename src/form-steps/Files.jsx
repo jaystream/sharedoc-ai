@@ -279,7 +279,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
               {
                 (files?.list?.length == 0) && 
                 <tr>
-                  <td colSpan={2}>No Records Found!</td>
+                  <td colSpan={2}>No Records Found! <Link className="" to={`upload`}>Click here</Link> to add.</td>
                 </tr>
               }
             </tbody>
