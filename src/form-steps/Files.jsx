@@ -235,6 +235,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Date</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -243,6 +244,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                 
                 return (<tr key={k}>
                   <td>{i.title}</td>
+                  <td>{i.date}</td>
                   <td>
                   <div className="btn-group">
                     <button type="button" className="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -279,7 +281,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
               {
                 (files?.list?.length == 0) && 
                 <tr>
-                  <td colSpan={2}>No Records Found! <Link className="" to={`upload`}>Click here</Link> to add.</td>
+                  <td colSpan={3}>No Records Found! <Link className="" to={`upload`}>Click here</Link> to add.</td>
                 </tr>
               }
             </tbody>
@@ -348,6 +350,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                 <thead>
                   <tr>
                     <th>Title</th>
+                    <th>Date</th>
                     <th>Action</th>
                   </tr>
                   </thead>
@@ -357,6 +360,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                         
                         return (<tr key={k}>
                           <td>{i.title}</td>
+                          <td>{i.date}</td>
                           <td>
                           
 
@@ -380,7 +384,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                   {
                     (files?.shared?.length == 0) && 
                     <tr>
-                      <td colSpan={2}>No Records Found!</td>
+                      <td colSpan={3}>No Records Found!</td>
                     </tr>
                   }
                   </tbody>

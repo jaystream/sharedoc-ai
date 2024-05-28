@@ -248,7 +248,8 @@ function getFiles()
                 'url' => $attachmentURL,
                 'block_hash' => get_field('block_hash'),
                 'post_id' => get_the_ID(),
-                'status' => get_post_status()
+                'status' => get_post_status(),
+                'date' => get_the_date( 'M d, Y' )
             ];
         endwhile;
     }
@@ -296,7 +297,8 @@ function getShared()
                 'url' => $attachmentURL,
                 'block_hash' => get_field('block_hash'),
                 'post_id' => get_the_ID(),
-                'status' => get_post_status()
+                'status' => get_post_status(),
+                'date' => get_the_date( 'M d, Y' )
             ];
         endwhile;
     }
