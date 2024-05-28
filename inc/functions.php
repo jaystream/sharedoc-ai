@@ -215,10 +215,10 @@ function getFiles()
 {
     $postStatus = 'any';
     switch ($_GET['show']) {
-        case 'Published':
+        case 'Active':
             $postStatus = 'publish';
             break;
-        case 'Unpublished':
+        case 'Inactive':
             $postStatus = 'draft';
             break;
         
@@ -261,10 +261,10 @@ function getShared()
 {
     $postStatus = 'any';
     switch ($_GET['show']) {
-        case 'Published':
+        case 'Active':
             $postStatus = 'publish';
             break;
-        case 'Unpublished':
+        case 'Inactive':
             $postStatus = 'draft';
             break;
         

@@ -206,26 +206,26 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                       return {
                         ...prev,
                         viewDocs:{
-                          myDoc: 'Published',
+                          myDoc: 'Active',
                           sharedDoc: prev.viewDocs.sharedDoc
                         }
                       }
                     });
 
-                  }} className={`dropdown-item ${files.viewDocs?.myDoc=='Published' ? 'active': ''}`} href="#">Published</a></li>
+                  }} className={`dropdown-item ${files.viewDocs?.myDoc=='Active' ? 'active': ''}`} href="#">Active</a></li>
                   <li><a onClick={(e)=>{
                     e.preventDefault();
                     setFiles((prev)=>{
                       return {
                         ...prev,
                         viewDocs:{
-                          myDoc: 'Unpublished',
+                          myDoc: 'Inactive',
                           sharedDoc: prev.viewDocs.sharedDoc
                         }
                       }
                     });
                     
-                  }}  className={`dropdown-item ${files.viewDocs?.myDoc=='Unpublished' ? 'active': ''}`} href="#">Unpublished</a></li>
+                  }}  className={`dropdown-item ${files.viewDocs?.myDoc=='Inactive' ? 'active': ''}`} href="#">Inactive</a></li>
                 </ul>
               </div>
             </div>
@@ -266,7 +266,7 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                           e.preventDefault();
                           publishUnpublish(i.post_id, i.status)
                         }} className="dropdown-item">
-                          {i.status=='publish' ? 'Unpublish':'Publish'}
+                          {i.status=='publish' ? 'Inactive':'Active'}
                         </a>
                       </li>
                     </ul>
@@ -319,12 +319,12 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                         ...prev,
                         viewDocs:{
                           myDoc: prev.viewDocs.myDoc,
-                          sharedDoc: 'Published',
+                          sharedDoc: 'Active',
                         }
                       }
                     });
 
-                  }} className={`dropdown-item ${files.viewDocs?.sharedDoc=='Published' ? 'active': ''}`} href="#">Published</a></li>
+                  }} className={`dropdown-item ${files.viewDocs?.sharedDoc=='Active' ? 'active': ''}`} href="#">Active</a></li>
                   <li><a onClick={(e)=>{
                     e.preventDefault();
                     setFiles((prev)=>{
@@ -332,12 +332,12 @@ const Files = ({ shareDoc, setShareDoc, handleConnect }) => {
                         ...prev,
                         viewDocs:{
                           myDoc: prev.viewDocs.myDoc,
-                          sharedDoc: 'Unpublished'
+                          sharedDoc: 'Inactive'
                         }
                       }
                     });
                     
-                  }}  className={`dropdown-item ${files.viewDocs?.sharedDoc=='Unpublished' ? 'active': ''}`} href="#">Unpublished</a></li>
+                  }}  className={`dropdown-item ${files.viewDocs?.sharedDoc=='Inactive' ? 'active': ''}`} href="#">Inactive</a></li>
                 </ul>
               </div>
             </div>
