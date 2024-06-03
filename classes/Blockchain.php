@@ -27,7 +27,7 @@ class Blockchain
                 foreach ($result as $key => $value) {
                     $block = new Block();
                     $block->setBlock($value->post_id, $value->n_version, $value->time, json_decode(stripslashes($value->data),true), $value->prev_block_hash, $value->block_hash);
-                    
+                    $block->type = $value->type;
                     $this->chains[] = $block;
                     
                 }

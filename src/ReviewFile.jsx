@@ -6,6 +6,10 @@ import axiosClient from './axios';
 import { convertWordArrayToUint8Array } from './helper';
 import HtmlDiff from 'htmldiff-js';
 import DiffMatchPatch from 'diff-match-patch';
+import { Tooltip } from 'react-tooltip';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ViewEdits from './components/ViewEdits';
+
 
 const reactAppData = window.xwbVar || {}
 const CryptoJS = require("crypto-js");
@@ -22,6 +26,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
   });
   let { fileHash } = useParams();
   const navigate = useNavigate();
+  
   useEffect( () => {
     setShareDoc((prev) => { 
       return {
@@ -29,7 +34,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         showSideMenu: false
       };
     });
-
+    
     axiosClient.get(`${reactAppData.ajaxURL}`,{
       params: {
         action: 'getFileHistory',
@@ -41,6 +46,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
       let fileData = responseData.data;
       let fileKey = fileData.file_key;
       let isAuthorized = fileData.isAuthorized;
+      
       fetch(fileData.url).then(async (res) => {
         let enctext = await res.text();
         
@@ -48,7 +54,7 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         
         let typedArray = convertWordArrayToUint8Array(decrypted);
         
-        let fileDec = new Blob([typedArray],{type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+        let fileDec = new Blob([typedArray],{type: fileData.mime_type});
         
         const reader = new FileReader();
         reader.addEventListener("loadend", () => {
@@ -67,7 +73,33 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               let matchedContent = '';
               const dmp = new DiffMatchPatch();
               let patch = '';
-              fileData?.chains?.map((v,i) => {
+              let changes = fileData.chains?.filter((chain) => {
+                return Number.isInteger(chain.data?.changes?.length);
+              } );
+              
+              let fixedChanges = changes?.map((v,i) => {
+                let converted = v.data.changes?.map((arr,key) => {
+                  arr[0] = parseInt(arr[0]);
+                  //console.log(arr);
+                  return arr;
+                });
+                //let patch = dmp.patch_make(converted);
+                dmp.diff_cleanupSemantic(converted);
+              console.log(converted);
+              matchedContent = dmp.diff_prettyHtml(converted);
+              //console.log(diffHTML);
+                //console.log(patch);
+                return converted;
+              })
+              
+              
+              /* fileData.chains?.map((v,i) => {
+                console.log(v.data?.changes)
+              }); */
+              /* fileData.fileEdits?.map((v,i) => {
+                console.log(v);
+              }); */
+              /* fileData?.chains?.map((v,i) => {
                 //console.log(v);
                 if(v.index > 1){
                   console.log(v?.data?.changes);
@@ -77,8 +109,9 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                   //patch = dmp.patch_make(v?.data?.changes); 
                   //console.log(patch);
                 }
-              });
+              }); */
               //htmldiff.execute(html, newContent);
+              console.log(fileData.changes);
               setContent((prev) => { 
                 return {
                   ...prev,
@@ -87,7 +120,10 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                   newContent: newContent,
                   matchedContent: matchedContent,
                   isAuthorized: isAuthorized,
-                  fileHash: fileHash
+                  fileHash: fileHash,
+                  title: fileData.title,
+                  histories: fileData.changes,
+                  collaborators: fileData.collaborators
                 }
               });
           })
@@ -99,13 +135,13 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         reader.readAsArrayBuffer(fileDec);
       })
       
-      setContent((prev) => {
+      /* setContent((prev) => {
         return {
           ...prev,
           title: fileData.title,
           histories: fileData.histories
         }
-      })
+      }) */
     });
   },[]);
   
@@ -126,17 +162,18 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
       <div className="col-md-8">
         <div className="doc-content" onClick={(e)=> {
           navigate('/files/'+content.fileHash);
-        }} dangerouslySetInnerHTML={{__html: content.originalContent}}>
+        }} dangerouslySetInnerHTML={{__html: content.matchedContent}}>
         </div>
       </div>
       <div className="col-md-4 border-start">
         <h3>Suggestions</h3>
+        
         {
           
           (content.isAuthorized &&
             <div>
               {
-              (content?.histories?.length == 0 && 
+              (Object.keys(content?.histories).length == 0 && 
               <div className="alert alert-danger" role="alert">
                 No history found!
               </div>
@@ -144,15 +181,40 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               }
 
               {
-                (content?.histories?.length > 0 && 
+                (Object.keys(content?.histories).length > 0 && 
                   <div>
                     
                   <ul className="list-group list-group-flush">
                     {
-                      content?.histories?.map((val,i) => {
-                        console.log(val);
+                      Object.keys(content?.histories)?.map((val,i) => {
+                        
                         return (
-                          <li key={i} className='list-group-item'>{i}</li>
+                          <li key={i} className='list-group-item columns-3 gap-3'>
+                            <div className="row">
+                              <div className="col-md-4">
+                                <p>{content?.collaborators[val]?.first_name+ ' '+ content?.collaborators[val]?.last_name}</p>
+                                <p><a href="" className="btn btn-sm btn-secondary text-nowrap rounded-pill">Compare vs. Orignal Version</a></p>
+                              </div>
+                              <div className="col-md-4">
+                                <a href="#" className="link" 
+                                data-tooltip-id="my-tooltip-click"
+                                data-tooltip-html={renderToStaticMarkup(<ViewEdits edits={content?.histories[val]} />)}
+                                >View Edits</a>
+                                <Tooltip
+                                  id="my-tooltip-click"
+                                  openOnClick={true}
+                                />
+                              </div>
+                              <div className="col-md-4">
+                                <a href="" className="icon me-1">
+                                  <i className="fa-regular fa-2x fa-circle-check text-success"></i>
+                                </a>
+                                <a href="" className="icon">
+                                  <i className="fa-regular fa-2x fa-circle-xmark text-danger"></i>
+                                </a>
+                              </div>
+                            </div>
+                          </li>
                         )
                       })
                     }

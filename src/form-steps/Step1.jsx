@@ -67,7 +67,8 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
     
     const reader = new FileReader();
     let file = data.document[0];
-    
+    let mimeType = file.type;
+
     reader.onload = e => {
       var rawLog = reader.result;
 
@@ -89,7 +90,8 @@ const Step1 = ({shareDoc,setShareDoc,handleConnect}) => {
         title: data.title,
         file_key: file_key,
         document: encFile,
-        fileHash: fileHash
+        fileHash: fileHash,
+        mimeType: mimeType
       };
       const headers = {
         'Content-Type': 'multipart/form-data'

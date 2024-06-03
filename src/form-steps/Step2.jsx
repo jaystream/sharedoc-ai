@@ -185,15 +185,7 @@ const Step2 = ({ shareDoc, setShareDoc, handleConnect }) => {
       <div className="row">
         <form onSubmit={handleSubmit(onSubmit)}>
           <h2 className="app-title">Step 2</h2>
-          <p>Block hash: <a className="text-decoration-none" href="" onClick={(e) => {
-            e.preventDefault();
-            setStep2((prev) => { 
-              return {
-                ...prev,
-                showTransaction: !step2.showTransaction
-              }
-            });
-          }}> {step2.showTransaction ? <span className="text-muted">{step2?.transactionHash}</span> : 'Blockchain Verified checkmark'} </a></p>
+          
           <p>Title: {step2?.title}</p>
           <div className="mb-3">
             <label htmlFor="wallet_to" className="form-label">Add user to share </label>

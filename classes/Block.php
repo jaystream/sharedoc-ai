@@ -3,6 +3,7 @@ class Block
 {
     public int $postID;
     public int $index;
+    public string $type;
     public string $timestamp;
     public $data;
     public string $previousHash;
@@ -18,6 +19,7 @@ class Block
         
         $this->postID = $postID;
         $this->index = $index;
+        $this->type = 'origin';
         $this->timestamp = $timestamp;
         $this->data = $data;
         $this->previousHash = $previousHash;

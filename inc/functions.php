@@ -75,6 +75,8 @@ function uploadFile()
     update_post_meta($attach_id, 'from', $_POST['email'] );
     update_post_meta($attach_id, 'hash', $_POST['fileHash'] );
     update_post_meta($attach_id, 'file_key', $_POST['file_key'] );
+    update_post_meta($attach_id, 'mime_type', $_POST['mimeType'] );
+    
     require_once( ABSPATH . 'wp-admin/includes/image.php' );
     $attach_data = wp_generate_attachment_metadata( $attach_id, $file );
     wp_update_attachment_metadata( $attach_id, $attach_data );
@@ -90,6 +92,7 @@ function uploadFile()
     
     update_field( 'file_hash', $_POST['fileHash'], $post_id );
     update_field( 'file', $attach_id, $post_id );
+    update_field( 'mime_type', $_POST['mimeType'], $post_id );
     update_field( 'email', $_POST['email'], $post_id );
 
     $bc = new Blockchain($post_id, [
@@ -189,7 +192,7 @@ function addPermissions()
     $to = $_POST['share_to_email'];
     $subject = 'A file has been shared to you - Sharedoc AI';
     $body = '<p>A new file has been shared to you.</p>
-    <p><a href="'.site_url('share/files/'.get_field('file_hash',$post_id)).'">Click here</a> to view and edit the file.</p>';
+    <p><a href="'.site_url('login').'">Click here</a> to login and navigate to shared files.</p>';
 
     $user = get_user_by('email',$to);
     if(!$user){
@@ -382,6 +385,7 @@ function getFile()
                 'url' => $attachmentURL,
                 'post_id' => get_the_ID(),
                 'file_hash' => get_field('file_hash'),
+                'mime_type' => get_field('mime_type'),
                 'file_key' => $fileKey,
                 'isAuthorized' => true
             ];
@@ -462,8 +466,27 @@ function getFileHistory()
 
             $emails = get_field('email_permissions');
             $email_permissions = [];
+            $owner = get_user_by('email', get_field('email'));
+            
+            
+            $collaborators[$owner->ID] = [
+                'first_name' => $owner->first_name,
+                'last_name' => $owner->last_name,
+                'email' => $owner->user_email,
+                'display_name' => $owner->display_name,
+                'id' => $owner->ID
+            ];
             foreach ($emails as $email) {
                 $email_permissions[] = $email['email'];
+                if($user = get_user_by('email', $email['email'])){
+                    $collaborators[$user->ID] = [
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'email' => $user->user_email,
+                        'display_name' => $owner->display_name,
+                        'id' => $user->ID
+                    ];
+                }
             }
             
             if(!$isAuthorized){
@@ -496,14 +519,14 @@ function getFileHistory()
                     if($value->action != 0){
                         $changes[$value->author][] = [
                             'text' => $value->changes,
-                            'action' => $action,
+                            'action' => $value->action,
                         ];
                     }
 
                     
                     $fileEdits[$value->author][] = [
                         'author_name' => $user->user_nicename,
-                        'action' => $action,
+                        'action' => $value->action,
                         'content' => $value->changes,
                         'time' => $value->time,
                         'is_current_user' => ($value->author == $user->ID)
@@ -519,8 +542,10 @@ function getFileHistory()
                 'url' => $attachmentURL,
                 'post_id' => get_the_ID(),
                 'file_hash' => get_field('file_hash'),
+                'mime_type' => get_field('mime_type'),
                 'file_key' => $fileKey,
                 'isAuthorized' => $isAuthorized,
+                'collaborators' => $collaborators,
                 'chains' => $chains,
                 'fileEdits' => $fileEdits,
                 'changes' => $changes

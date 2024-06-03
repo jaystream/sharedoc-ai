@@ -55,6 +55,9 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     
     let newContent = editorRef.current.getContent();
     let diff = dmp.diff_main(editFile.origContent, newContent);
+    dmp.diff_cleanupSemantic(diff);
+    console.log(diff);
+    let diffHTML = dmp.diff_prettyHtml(diff);
     
     let updateContentData = {
       'action': 'updateContent',
@@ -177,7 +180,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
         
         let typedArray = convertWordArrayToUint8Array(decrypted);
         
-        let fileDec = new Blob([typedArray],{type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+        let fileDec = new Blob([typedArray],{type: responseData.mime_type});
         
         const reader = new FileReader();
         reader.addEventListener("loadend", () => {
