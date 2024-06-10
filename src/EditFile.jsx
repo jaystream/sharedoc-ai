@@ -85,7 +85,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     };
     
     console.log(updateContentData)
-    return false;
+    //return false;
     axiosClient.post(`${reactAppData.ajaxURL}`,updateContentData).then(async response => {
       
       if(response.data.success){
