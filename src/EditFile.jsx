@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from '@wordpress/element';
 import { Editor } from "@tinymce/tinymce-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axiosClient from "./axios";
-import { convertWordArrayToUint8Array, fixDiffs, convertHTML } from "./helper";
+import { convertWordArrayToUint8Array, fixDiffs, convertHTML, convertUnicode } from "./helper";
 import DiffMatchPatch from 'diff-match-patch';
 import HtmlDiff from 'htmldiff-js';
 
@@ -26,7 +26,7 @@ import { saveAs } from 'file-saver' //save the file
 const EditFile = ({shareDoc, setShareDoc}) => {
   const dmp = new DiffMatchPatch();
   const navigate = useNavigate();
-  dmp.Diff_Timeout = 1;
+  dmp.Diff_Timeout = 5;
   let { fileHash } = useParams();
   
   const [editFile, setEditFile] = useState({
@@ -35,6 +35,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     newContent: null,
     finalContent: null,
     postID: null,
+    efficiency: 4
   });
 
   const editorRef = useRef(null);
@@ -52,22 +53,41 @@ const EditFile = ({shareDoc, setShareDoc}) => {
   const updateForm = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    dmp.Diff_EditCost = parseInt(process.env.REACT_APP_DIFF_EDITCOST)
+    dmp.Match_Threshold = parseFloat(process.env.REACT_APP_MATCH_THRESHOLD)
+    dmp.Patch_DeleteThreshold = parseFloat(process.env.REACT_APP_PATCH_DELETE_THRESHOLD)
+    //dmp.Match_Distance = parseFloat(1)
     
-    let newContent = editorRef.current.getContent();
-    let diff = dmp.diff_main(editFile.origContent, newContent);
-    dmp.diff_cleanupSemantic(diff);
-    console.log(diff);
-    let diffHTML = dmp.diff_prettyHtml(diff);
+    let newContent = convertUnicode(editorRef.current.getContent());
+    let origContent = convertUnicode(editFile.origContent)
+    
+    let diff = dmp.diff_main(origContent, newContent, true);
+    if (diff.length > 2) {
+      dmp.diff_cleanupSemantic(diff);
+    }
+    
+    console.log(diff)
+    
+    let patch = dmp.patch_make(diff)
+    
+    let textPatched = dmp.patch_toText(patch);
+    console.log(textPatched)
+    
     
     let updateContentData = {
       'action': 'updateContent',
       'nonce': reactAppData.nonce,
-      'oldContent':editFile.origContent,
+      'oldContent':origContent,
       'newContent':newContent,
       'postID': editFile.postID,
-      'edits': diff
+      'edits': diff,
+      'patch': textPatched
     };
+    
+    console.log(updateContentData)
+    return false;
     axiosClient.post(`${reactAppData.ajaxURL}`,updateContentData).then(async response => {
+      
       if(response.data.success){
         navigate('/review/'+fileHash);
       }
@@ -80,18 +100,25 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     e.preventDefault();
     e.stopPropagation();
     
+    dmp.Diff_EditCost = parseInt(process.env.REACT_APP_DIFF_EDITCOST)
 
-    let newContent = editorRef.current.getContent();
+    let origContent = convertUnicode(editFile.origContent);
+    let newContent = convertUnicode(editorRef.current.getContent());
+    let diff = dmp.diff_main(origContent, newContent);
     
+    //dmp.diff_cleanupEfficiency(diff);
+    dmp.diff_cleanupSemantic(diff);
+    
+    let diffHTML = dmp.diff_prettyHtml(diff);
+    diffHTML = convertUnicode(diffHTML, true);
+
     var ms_start = (new Date()).getTime();
     
     //let encodedOrigContent = convertHTML(editFile.origContent);
     //let encodedNewContent = convertHTML(newContent);
-    
-    
-    
-        
-    const diffhtml = HtmlDiff.execute(editFile.origContent, newContent);
+      console.log(editFile.origContent);
+      console.log(editorRef.current.getContent());
+    const diffhtml = HtmlDiff.execute(editFile.origContent, editorRef.current.getContent());
     setEditFile((prev) => { 
       return {
         ...prev,
@@ -100,50 +127,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     });
     
     
-
-
-    /* dmp.diff_cleanupSemantic(diff);
-    let diffHTML = dmp.diff_prettyHtml(diff);
-    diffHTML = diffHTML.replaceAll('&amp;','&');
-    diffHTML = decode(diffHTML); */
-    
-    
-
-    /* setEditFile((prev) => { 
-      return {
-        ...prev,
-        finalContent: diffHTML
-      }
-    }); */
-    
-    
-    /* var ms_end = (new Date()).getTime();
-    var diffSeconds = (ms_end - ms_start) / 1000;
-
-    
-    let newdiff = fixDiffs(diff);
-    
-    let diff1 = newdiff;
-    console.log(diff1);
-    setTimeout(() => {
-      const dmp1 = new DiffMatchPatch();
-      dmp1.diff_cleanupSemantic(diff1 );
-      let diffHTML = dmp1.diff_prettyHtml(diff1 );
-      //diffHTML = diffHTML.replace('&para;<br>','');
-      console.log(diff1);
-      
-      diffHTML = decode(diffHTML, {level: 'html5'});
-      console.log(diffHTML);
-      setEditFile((prev) => { 
-        return {
-          ...prev,
-          finalContent: diffHTML
-        }
-      });
-    }, 5000); */
-
-    //let diffJson = JSON.stringify(diff1);
-    
+   
   }
 
   
@@ -183,21 +167,44 @@ const EditFile = ({shareDoc, setShareDoc}) => {
         let fileDec = new Blob([typedArray],{type: responseData.mime_type});
         
         const reader = new FileReader();
+        
         reader.addEventListener("loadend", () => {
           var rawLog = reader.result;
           mammoth.convertToHtml({arrayBuffer : rawLog})
           .then(result => {
-              var html = result.value; // The generated HTML
+            var html = result.value; // The generated HTML
+            const dmp = new DiffMatchPatch();
+            
+            let chains = responseData.chains?.filter((chain) => {
+              return typeof chain.data?.patch !== "undefined"
+            });
+            let counter = 1;
+            let patch;
+            chains?.forEach(val => {
+              console.log(val.data.oldContent)
+              if(counter == 1){
+                html = convertUnicode(val.data.newContent,true);
+                patch = dmp.patch_fromText(val.data.patch)
+              }else{
+                html = dmp.patch_apply(patch, val.data.newContent)
+              }
               
-              setEditFile((prev) => { 
-                return {
-                  ...prev,
-                  origContent: html,
-                  postID: responseData.post_id
-                }
-              });
-              var messages = result.messages; // Any messages, such as warnings during conversion
-              editorRef.current.setContent(html);
+              
+              //console.log(patched)
+
+              
+              counter++;
+            });
+            console.log(html)
+            setEditFile((prev) => { 
+              return {
+                ...prev,
+                origContent: html,
+                postID: responseData.post_id
+              }
+            });
+            var messages = result.messages; // Any messages, such as warnings during conversion
+            editorRef.current.setContent(html);
           })
           .catch(function(error) {
               console.error(error);
@@ -245,7 +252,24 @@ const EditFile = ({shareDoc, setShareDoc}) => {
                 />
               </div>
             </div>
-            
+           {/*  <div className="row">
+              <div className="col">
+                <div className="input-group mb-3">
+                  <span className="input-group-text">Efficiency</span>
+                  <input type="number" min={0} className="form-control" aria-label=""
+                  value={editFile.efficiency}
+                  onChange={(e) => {
+                    setEditFile((prev) => { 
+                      return {
+                        ...prev,
+                        efficiency: e.target.value
+                      }
+                    });
+                  }}
+                   />
+              </div>
+              </div>
+            </div> */}
             <div className="row">
               <div className="col-md-12">
                 <button type="button" className="btn btn-warning me-2" onClick={previewHTML}>Preview</button>

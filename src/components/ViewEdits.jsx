@@ -1,5 +1,5 @@
 import React from 'react'
-import { removeTags } from '../helper'
+import { convertUnicode, removeTags } from '../helper'
 
 const ViewEdits = ({edits}) => {
   
@@ -13,10 +13,14 @@ const ViewEdits = ({edits}) => {
         <tbody>
           {
             edits?.map((v,i) => {
-              return <tr key={i}>
-                <td>{v.action == 1 ? 'Added': 'Deleted'}</td>
-                <td>{removeTags(v.text)}</td>
-              </tr>
+              return v?.diffs?.map((diffVal,diffKey) => {
+                if(diffVal[0] != 0){
+                  return <tr key={diffKey}>
+                    <td>{diffVal[0] == 1 ? 'Added': 'Deleted'}</td>
+                    <td>{removeTags(convertUnicode(diffVal[1],true))}</td>
+                  </tr>
+                }
+              })
             })
           }
         </tbody>

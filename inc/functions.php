@@ -95,8 +95,10 @@ function uploadFile()
     update_field( 'mime_type', $_POST['mimeType'], $post_id );
     update_field( 'email', $_POST['email'], $post_id );
 
+    $user = wp_get_current_user();
     $bc = new Blockchain($post_id, [
-        'file_hash' => $_POST['fileHash']
+        'file_hash' => $_POST['fileHash'],
+        'author' => $user->ID,
     ]);
     $block = $bc->getLatestBlock();
 
@@ -334,6 +336,7 @@ add_action( 'wp_ajax_getFile', 'getFile' );
 //add_action( 'wp_ajax_nopriv_getFile', 'getFile' );
 function getFile()
 {
+    global $wpdb;
     $file_hash = $_GET['file_hash'];
     $hasPermission = false;
     $currentUser = wp_get_current_user();
@@ -380,6 +383,17 @@ function getFile()
             $attachmentURL = wp_get_attachment_url($attachement->ID);
             $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
             $fileKey = get_post_meta($attachement->ID, 'file_key',true);
+            $postID = get_the_ID();
+            $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
+            $bc = new Blockchain();
+            $bc->setChains($postID);
+            $chains = $bc->chains;
+            
+            $chains = array_values(array_filter($chains, function($v) use ($currentUser) {
+            
+                return $v->data['author'] == $currentUser->ID && $v->type == 'suggestion';
+            }));
+            
             $data = [
                 'title' => get_field('file_hash'),
                 'url' => $attachmentURL,
@@ -387,6 +401,7 @@ function getFile()
                 'file_hash' => get_field('file_hash'),
                 'mime_type' => get_field('mime_type'),
                 'file_key' => $fileKey,
+                'chains' => $chains,
                 'isAuthorized' => true
             ];
         endwhile;
@@ -504,32 +519,34 @@ function getFileHistory()
             $fileEdits = [];
             $changes = [];
             foreach ($result as $key => $value) {
-                
+
                 $user = get_user_by('ID', $value->author);
                 $editResult = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain_edits WHERE bc_id = {$value->id}", OBJECT );
                 
-                foreach ($editResult as $key => $value) {
+                foreach ($editResult as $key => $editValue) {
                     $action = 0;
-                    if($value->action == 1)
+                    if($editValue->action == 1)
                         $action = 'Added';
-                    if($value->action == -1)
+                    if($editValue->action == -1)
                         $action = 'Deleted';
 
 
-                    if($value->action != 0){
-                        $changes[$value->author][] = [
-                            'text' => $value->changes,
-                            'action' => $value->action,
+                    if($editValue->action != 0){
+                        $changes[$editValue->author][] = [
+                            'text' => $editValue->changes,
+                            'action' => $editValue->action,
+                            'block_hash' => $value->block_hash
                         ];
                     }
 
                     
-                    $fileEdits[$value->author][] = [
+                    $fileEdits[$editValue->author][] = [
                         'author_name' => $user->user_nicename,
-                        'action' => $value->action,
-                        'content' => $value->changes,
-                        'time' => $value->time,
-                        'is_current_user' => ($value->author == $user->ID)
+                        'action' => $editValue->action,
+                        'content' => $editValue->changes,
+                        'time' => $editValue->time,
+                        'block_hash' => $value->block_hash,
+                        'is_current_user' => ($editValue->author == $user->ID)
                     ]; 
                 }
 
@@ -547,12 +564,12 @@ function getFileHistory()
                 'isAuthorized' => $isAuthorized,
                 'collaborators' => $collaborators,
                 'chains' => $chains,
-                'fileEdits' => $fileEdits,
-                'changes' => $changes
+                'changes' => $changes,
+                'fileEdits' => $fileEdits                
             ];
         endwhile;
     }
-
+    
     wp_send_json_success($data);
 }
 
@@ -571,13 +588,18 @@ function updateContent()
 
     $user = wp_get_current_user();
     extract($_POST);
+    
     $data = array(
         'post_id' => $postID,
         'author' => $user->ID,
         'oldContent' => $oldContent,
         'newContent' => $newContent,
         'changes' => $edits,
+        'patch' => $patch
     );
+    
+    
+    
     $bc = new Blockchain();
     $bc->setChains($postID);
     $bc->createSDBlock($postID, $data);

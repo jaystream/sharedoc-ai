@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Link, matchRoutes, useLocation, useNavigate, useParams, useRoutes } from 'react-router-dom';
 import { useState, useEffect, useRef } from '@wordpress/element';
 import axiosClient from './axios';
-import { convertWordArrayToUint8Array } from './helper';
+import { convertHTML, convertUnicode, convertWordArrayToUint8Array } from './helper';
 import HtmlDiff from 'htmldiff-js';
 import DiffMatchPatch from 'diff-match-patch';
 import { Tooltip } from 'react-tooltip';
@@ -27,6 +27,18 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
   let { fileHash } = useParams();
   const navigate = useNavigate();
   
+
+  /**
+   * Compare vs Original
+   * 
+   * @param {string} hash 
+   */
+  const compareEdit = data => {
+    
+    return HtmlDiff.execute(convertUnicode(content.originalContent,true), convertUnicode(data.newContent,true));
+    
+  }
+
   useEffect( () => {
     setShareDoc((prev) => { 
       return {
@@ -72,26 +84,64 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               let newContent = '';
               let matchedContent = '';
               const dmp = new DiffMatchPatch();
-              let patch = '';
-              let changes = fileData.chains?.filter((chain) => {
-                return Number.isInteger(chain.data?.changes?.length);
-              } );
-              
-              let fixedChanges = changes?.map((v,i) => {
+              dmp.Match_Threshold = parseFloat(process.env.REACT_APP_MATCH_THRESHOLD)
+              dmp.Patch_DeleteThreshold = parseFloat(process.env.REACT_APP_PATCH_DELETE_THRESHOLD)
+              let edits = [];
+
+              let chains = fileData.chains?.filter((chain) => {
+                return typeof chain.data?.patch !== "undefined"
+              });
+
+              let counter = 1;
+              let diff;
+
+              let fixedChanges = chains?.map((v,i) => {
+                
+                let patched = dmp.patch_fromText(v.data.patch)
+                
+                edits.push({
+                  author: v.data.author,
+                  patches: patched,
+                  newContent: v.data.newContent
+                })
+                
+                
+
                 let converted = v.data.changes?.map((arr,key) => {
                   arr[0] = parseInt(arr[0]);
                   //console.log(arr);
                   return arr;
                 });
-                //let patch = dmp.patch_make(converted);
-                dmp.diff_cleanupSemantic(converted);
-              console.log(converted);
-              matchedContent = dmp.diff_prettyHtml(converted);
+                if(counter == 1){
+                  
+                  
+                  diff = dmp.diff_main(v.data.oldContent, v.data.newContent)
+                  dmp.diff_cleanupSemantic(diff);
+                  
+                  let diffHTML = dmp.diff_prettyHtml(diff)
+                  
+                  //matchedContent = convertUnicode(diffHTML,true)
+                  
+                  matchedContent = HtmlDiff.execute(convertUnicode(v.data.oldContent, true), convertUnicode(v.data.newContent,true))
+                }else{
+                  
+                  let patch = dmp.patch_make(v.data.newContent,diff)
+                  //console.log(patch);
+                  let newContent = dmp.patch_apply(patch,v.data.newContent)
+                  result = convertUnicode(newContent[0],true)
+
+                  matchedContent = result
+                  
+                }
+                
+                //dmp.diff_cleanupSemantic(converted);
+              
+              //matchedContent = dmp.diff_prettyHtml(converted);
               //console.log(diffHTML);
                 //console.log(patch);
+                counter++;
                 return converted;
               })
-              
               
               /* fileData.chains?.map((v,i) => {
                 console.log(v.data?.changes)
@@ -111,18 +161,19 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                 }
               }); */
               //htmldiff.execute(html, newContent);
-              console.log(fileData.changes);
+              
               setContent((prev) => { 
                 return {
                   ...prev,
-                  originalContent: html,
-                  oldContent: oldContent,
+                  originalContent: convertUnicode(html),
+                  oldContent: convertUnicode(oldContent),
                   newContent: newContent,
                   matchedContent: matchedContent,
                   isAuthorized: isAuthorized,
                   fileHash: fileHash,
                   title: fileData.title,
-                  histories: fileData.changes,
+                  histories: edits,
+                  chains: fileData.chains,
                   collaborators: fileData.collaborators
                 }
               });
@@ -166,14 +217,14 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         </div>
       </div>
       <div className="col-md-4 border-start">
-        <h3>Suggestions</h3>
+        <h3>Edits</h3>
         
         {
           
           (content.isAuthorized &&
             <div>
               {
-              (Object.keys(content?.histories).length == 0 && 
+              (content?.histories?.length == 0 && 
               <div className="alert alert-danger" role="alert">
                 No history found!
               </div>
@@ -181,24 +232,34 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               }
 
               {
-                (Object.keys(content?.histories).length > 0 && 
+                (content?.histories?.length > 0 && 
                   <div>
                     
                   <ul className="list-group list-group-flush">
                     {
-                      Object.keys(content?.histories)?.map((val,i) => {
+                      
+                      content?.histories?.map((val,i) => {
                         
                         return (
                           <li key={i} className='list-group-item columns-3 gap-3'>
                             <div className="row">
                               <div className="col-md-4">
-                                <p>{content?.collaborators[val]?.first_name+ ' '+ content?.collaborators[val]?.last_name}</p>
-                                <p><a href="" className="btn btn-sm btn-secondary text-nowrap rounded-pill">Compare vs. Orignal Version</a></p>
+                                <p>{content?.collaborators[val.author]?.first_name+ ' '+ content?.collaborators[val.author]?.last_name}</p>
+                                <p><a href="" onClick={(e)=>{
+                                  e.preventDefault();
+                                  
+                                  setContent((prev) => { 
+                                    return {
+                                      ...prev,
+                                      matchedContent: compareEdit(val)
+                                    }
+                                  });
+                                }} className="btn btn-sm btn-secondary text-nowrap rounded-pill">Compare vs. Orignal Version</a></p>
                               </div>
                               <div className="col-md-4">
                                 <a href="#" className="link" 
                                 data-tooltip-id="my-tooltip-click"
-                                data-tooltip-html={renderToStaticMarkup(<ViewEdits edits={content?.histories[val]} />)}
+                                data-tooltip-html={renderToStaticMarkup(<ViewEdits edits={val.patches} />)}
                                 >View Edits</a>
                                 <Tooltip
                                   id="my-tooltip-click"

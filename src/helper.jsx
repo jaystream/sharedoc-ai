@@ -146,10 +146,24 @@ export const convertHTML = (str) => {
     "\"": "&quot;",
     "'": "&apos;"
   }
-  let newStr = str.replaceAll('<','&lt;');
-  newStr = newStr.replaceAll('>','&gt;');
+  let newStr = str.replaceAll('<','U+003C');
+  newStr = newStr.replaceAll('>','U+003E');
   return newStr;
 }
+
+export const convertUnicode = (str, reverse = false) => {
+  let newStr;
+  if(reverse){
+    newStr = str.replaceAll(' U+003C','<');
+    newStr = newStr.replaceAll('U+003E ','>');
+  }else{
+    newStr = str.replaceAll('<',' U+003C');
+    newStr = newStr.replaceAll('>','U+003E ');
+  }
+  
+  return newStr;
+}
+
 
 export const generateHash = (data) => {
   var hash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(rawLog));
