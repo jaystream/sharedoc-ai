@@ -6,18 +6,22 @@ use Block;
 class Blockchain
 {
     public array $chains = [];
+    public string $branch;
 
     public bool $hasChains = false;
-    public function __construct($postID = false, $data = [])
+    public function __construct($postID = false, $data = [], $branch = 'origin' )
     {   
+        $this->branch = $branch;
         if($postID){
             $this->setChains($postID);
             $this->chains[] = $this->createSDBlock($postID, $data);
         }
     }
 
-    public function setChains($postID = false){
+    public function setChains($postID = false, $branch = 'origin'){
         global $wpdb;
+
+        $this->branch = $branch;
         if($postID){
             
             $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
@@ -39,9 +43,10 @@ class Blockchain
         
     }
 
-    public function createSDBlock($postID = false, $data = []): Block
+    public function createSDBlock($postID = false, $data = [],$branch = 'origin'): Block
     {
         global $wpdb;
+        $this->branch = $branch;
         $type = 'origin';
         if(count($this->chains) > 0){
             $block = $this->addBlock($postID, count($this->chains) + 1, time(), $data);
@@ -58,6 +63,7 @@ class Blockchain
             'post_id' => $block->postID,
             'n_version' => $block->index,
             'type' => $type,
+            'branch' => $branch,
             'time' => date('Y-m-d H:i:s', $block->timestamp),
             'block_hash' => $block->hash,
             'author' => get_current_user_id(),

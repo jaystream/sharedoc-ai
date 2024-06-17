@@ -12,6 +12,7 @@ const ViewEdits = ({edits}) => {
         </thead>
         <tbody>
           {
+            
             edits?.map((v,i) => {
               return v?.diffs?.map((diffVal,diffKey) => {
                 if(diffVal[0] != 0){

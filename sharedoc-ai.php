@@ -96,6 +96,7 @@ function sd_install_dbtables()
         `id` bigint(20) NOT NULL AUTO_INCREMENT,
         `post_id` int(11) NULL DEFAULT 0,
         `type` VARCHAR(50) NULL DEFAULT 'origin',
+        `branch` VARCHAR(150) NULL DEFAULT 'origin',
         `author` INT NULL,
         `action` VARCHAR(20) NOT NULL,
         `changes` MEDIUMTEXT NULL,

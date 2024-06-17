@@ -3,12 +3,13 @@ import PropTypes from 'prop-types'
 import { Link, matchRoutes, useLocation, useNavigate, useParams, useRoutes } from 'react-router-dom';
 import { useState, useEffect, useRef } from '@wordpress/element';
 import axiosClient from './axios';
-import { convertHTML, convertUnicode, convertWordArrayToUint8Array } from './helper';
+import { convertHTML, convertUnicode, convertWordArrayToUint8Array, removeHTMLTags, removeTags } from './helper';
 import HtmlDiff from 'htmldiff-js';
 import DiffMatchPatch from 'diff-match-patch';
 import { Tooltip } from 'react-tooltip';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ViewEdits from './components/ViewEdits';
+import * as sanitizeHtml from 'sanitize-html';
 
 
 const reactAppData = window.xwbVar || {}
@@ -26,8 +27,9 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
   });
   let { fileHash } = useParams();
   const navigate = useNavigate();
-  
-
+  const dmp = new DiffMatchPatch();
+  dmp.Match_Threshold = parseFloat(process.env.REACT_APP_MATCH_THRESHOLD)
+  dmp.Patch_DeleteThreshold = parseFloat(process.env.REACT_APP_PATCH_DELETE_THRESHOLD)
   /**
    * Compare vs Original
    * 
@@ -39,7 +41,95 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
     
   }
 
+  String.prototype.replaceAt = function(index, length, author) {
+    let replacement = this.substring(index,index+length)
+    replacement = '<span class="auid-'+author+'">'+replacement+'</span>'
+    return this.substring(0,index) + replacement + this.substring(index+replacement.length);
+  }
+
+  const identifyContent = (lastContent, patches, author) => {
+    
+    let oldContentPart = ''
+    let newContentPart = ''
+    let patchCounter = 1;
+    let prevPatchLength = 0;
+    let operator = '+';
+    let startAtOld = 0;
+    let strLengthOld = 0;
+    let startAtNew = 0;
+    let strLengthNew = 0;
+    let action = 0;
+    let strToSearch = '';
+    
+    patches?.map((patch,patchKey)  => {
+        
+      if(patchCounter > 1){
+        startAtOld = patch.start1 + prevPatchLength;
+        strLengthOld = patch.start1 + patch.length1 + prevPatchLength;
+        startAtNew = patch.start2;
+        strLengthNew = patch.start2 + patch.length2;
+      }else{
+        startAtOld = patch.start1;
+        strLengthOld = patch.start1 + patch.length1;
+        startAtNew = patch.start2;
+        strLengthNew = patch.start2 + patch.length2;
+      }
+      dmp.Match_Distance = parseFloat(1000)
+      //dmp.Match_Threshold = parseFloat(0.8);
+
+      //console.log(patch)
+      //oldContentPart = lastContent.slice(startAtOld ,strLengthOld)
+      newContentPart = lastContent.slice(startAtNew ,strLengthNew)
+      //console.log(startAtNew, lastContent, startAtNew)
+      //console.log(patchCounter, newContentPart);
+      action = patch.diffs[1][0];
+      strToSearch = patch.diffs[1][1];
+      
+      //console.log(startAtNew, newContentPart, strLengthNew)
+      //console.log(convertUnicode(edit.newContent).slice(startAtNew, strLengthNew))
+
+
+      strToSearch = convertUnicode(strToSearch,true);
+      strToSearch = sanitizeHtml(strToSearch,{allowedTags:[]})
+      
+      strToSearch = strToSearch.replace('&lt;/','')
+      
+      //console.log(patch)
+      
+      let match = dmp.match_main(lastContent, strToSearch, startAtNew);
+      let replaced = lastContent.replaceAt(match,strToSearch.length,author);
+      lastContent = convertUnicode(replaced,true);
+      
+     /*  console.log(lastContent)
+      console.log(match, strToSearch, strToSearch.length)
+      let strPos = lastContent.substring(match, match+strToSearch.length)
+      console.log(strPos) */
+      /* oldContentPart = convertUnicode(oldContentPart,true);
+      newContentPart = convertUnicode(newContentPart,true);
+      
+      oldContentPart = sanitizeHtml(oldContentPart,{allowedTags:[]})
+      newContentPart = sanitizeHtml(newContentPart,{allowedTags:[]})
+
+      oldContentPart = oldContentPart.replace('&lt;/','')
+      newContentPart = newContentPart.replace('&lt;/','') */
+
+      
+
+      if(patch.diffs[1][0] == 1){
+        operator = '-';
+      }
+      if(patch.diffs[1][0] == -1){
+        operator = '+';
+      }
+      prevPatchLength = prevPatchLength + parseInt(operator + patch.diffs[1][1].length);
+      patchCounter++;
+    })
+    return lastContent;
+  }
+
+
   useEffect( () => {
+    
     setShareDoc((prev) => { 
       return {
         ...prev,
@@ -81,11 +171,11 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               }
 
               let oldContent = html;
+              let lastContent = '';
               let newContent = '';
               let matchedContent = '';
-              const dmp = new DiffMatchPatch();
-              dmp.Match_Threshold = parseFloat(process.env.REACT_APP_MATCH_THRESHOLD)
-              dmp.Patch_DeleteThreshold = parseFloat(process.env.REACT_APP_PATCH_DELETE_THRESHOLD)
+              //const dmp = new DiffMatchPatch();
+              
               let edits = [];
 
               let chains = fileData.chains?.filter((chain) => {
@@ -94,73 +184,75 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
 
               let counter = 1;
               let diff;
-
+              let patch;
               let fixedChanges = chains?.map((v,i) => {
                 
                 let patched = dmp.patch_fromText(v.data.patch)
                 
                 edits.push({
+                  version: v.version,
                   author: v.data.author,
                   patches: patched,
-                  newContent: v.data.newContent
+                  newContent: v.data.newContent,
+                  oldContent: v.data.oldContent
                 })
                 
                 
 
                 let converted = v.data.changes?.map((arr,key) => {
                   arr[0] = parseInt(arr[0]);
-                  //console.log(arr);
+
                   return arr;
                 });
+                
                 if(counter == 1){
                   
-                  
                   diff = dmp.diff_main(v.data.oldContent, v.data.newContent)
-                  dmp.diff_cleanupSemantic(diff);
-                  
-                  let diffHTML = dmp.diff_prettyHtml(diff)
-                  
-                  //matchedContent = convertUnicode(diffHTML,true)
+                  //dmp.diff_cleanupSemantic(diff);
+
+                  //let diffHTML = dmp.diff_prettyHtml(diff)
+
                   
                   matchedContent = HtmlDiff.execute(convertUnicode(v.data.oldContent, true), convertUnicode(v.data.newContent,true))
+                  lastContent = v.data.newContent;
                 }else{
                   
-                  let patch = dmp.patch_make(v.data.newContent,diff)
-                  //console.log(patch);
-                  let newContent = dmp.patch_apply(patch,v.data.newContent)
+                  if(lastContent === ''){
+                    patch = dmp.patch_make(diff)
+                    newContent = dmp.patch_apply(patch,v.data.newContent)
+                  }else{
+                    patch = dmp.patch_fromText(v.data.patch);
+                    //console.log(patch);
+                    //patch = dmp.patch_make(v.data.oldContent,v.data.newContent)
+                    newContent = dmp.patch_apply(patch,lastContent)
+                    
+                  }
                   result = convertUnicode(newContent[0],true)
-
+                  lastContent  = newContent[0];
                   matchedContent = result
                   
                 }
                 
-                //dmp.diff_cleanupSemantic(converted);
-              
-              //matchedContent = dmp.diff_prettyHtml(converted);
-              //console.log(diffHTML);
-                //console.log(patch);
+                let genContent = identifyContent(lastContent, patched, v.data.author)
+                
                 counter++;
                 return converted;
               })
+
+              //console.log(matchedContent)
+              //let genContent = identifyContent(lastContent, patched, v.data.author)
+
+              //identifyContent(html, matchedContent, edits)
+
+              /* diff = dmp.diff_main(convertUnicode(html), convertUnicode(matchedContent))
+              if (diff.length > 2) {
+                dmp.diff_cleanupSemantic(diff);
+              }
               
-              /* fileData.chains?.map((v,i) => {
-                console.log(v.data?.changes)
-              }); */
-              /* fileData.fileEdits?.map((v,i) => {
-                console.log(v);
-              }); */
-              /* fileData?.chains?.map((v,i) => {
-                //console.log(v);
-                if(v.index > 1){
-                  console.log(v?.data?.changes);
-                  v?.data?.changes?.map((a,b) => {
-                    console.log(a);
-                  });
-                  //patch = dmp.patch_make(v?.data?.changes); 
-                  //console.log(patch);
-                }
-              }); */
-              //htmldiff.execute(html, newContent);
+              matchedContent = dmp.diff_prettyHtml(diff);
+              matchedContent = convertUnicode(matchedContent,true) */
+              
+              matchedContent = HtmlDiff.execute(html, matchedContent);
               
               setContent((prev) => { 
                 return {
@@ -216,8 +308,8 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
         }} dangerouslySetInnerHTML={{__html: content.matchedContent}}>
         </div>
       </div>
-      <div className="col-md-4 border-start">
-        <h3>Edits</h3>
+      <div className="col-md-4 border-start vh-75">
+        <h3>Edit Versions</h3>
         
         {
           
@@ -242,9 +334,16 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                         
                         return (
                           <li key={i} className='list-group-item columns-3 gap-3'>
+                            
+                            <div className="row">
+                              <div className="col">
+                                <a href="" onClick={(e)=>{e.preventDefault()}} title='Version' className=""><span className="badge rounded-pill text-bg-secondary">{val.version}</span></a>
+                              </div>
+                            </div>
                             <div className="row">
                               <div className="col-md-4">
-                                <p>{content?.collaborators[val.author]?.first_name+ ' '+ content?.collaborators[val.author]?.last_name}</p>
+                                <p style={{color:content?.collaborators[val.author]?.color}}>
+                                {content?.collaborators[val.author]?.first_name+ ' '+ content?.collaborators[val.author]?.last_name}</p>
                                 <p><a href="" onClick={(e)=>{
                                   e.preventDefault();
                                   
@@ -254,10 +353,10 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                                       matchedContent: compareEdit(val)
                                     }
                                   });
-                                }} className="btn btn-sm btn-secondary text-nowrap rounded-pill">Compare vs. Orignal Version</a></p>
+                                }} className="btn btn-sm btn-secondary text-nowrap rounded-pill position-relative">Compare vs. Orignal Version</a></p>
                               </div>
                               <div className="col-md-4">
-                                <a href="#" className="link" 
+                                <a href="" onClick={(e)=>e.preventDefault()} className="link" 
                                 data-tooltip-id="my-tooltip-click"
                                 data-tooltip-html={renderToStaticMarkup(<ViewEdits edits={val.patches} />)}
                                 >View Edits</a>

@@ -31,9 +31,10 @@ const EditFile = ({shareDoc, setShareDoc}) => {
   
   const [editFile, setEditFile] = useState({
     isAuthorized: true,
-    origContent: null,
-    newContent: null,
-    finalContent: null,
+    userContent: '',
+    origContent: '',
+    newContent: '',
+    finalContent: '',
     postID: null,
     efficiency: 4
   });
@@ -59,33 +60,34 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     //dmp.Match_Distance = parseFloat(1)
     
     let newContent = convertUnicode(editorRef.current.getContent());
-    let origContent = convertUnicode(editFile.origContent)
+    let oldContent = convertUnicode(editFile.oldContent)
     
-    let diff = dmp.diff_main(origContent, newContent, true);
+    
+    let diff = dmp.diff_main(oldContent, newContent, true);
     if (diff.length > 2) {
       dmp.diff_cleanupSemantic(diff);
     }
     
-    console.log(diff)
+    
     
     let patch = dmp.patch_make(diff)
-    
+    console.log(patch)
     let textPatched = dmp.patch_toText(patch);
-    console.log(textPatched)
-    
+       
     
     let updateContentData = {
       'action': 'updateContent',
       'nonce': reactAppData.nonce,
-      'oldContent':origContent,
+      'oldContent':oldContent,
       'newContent':newContent,
       'postID': editFile.postID,
       'edits': diff,
       'patch': textPatched
     };
     
-    console.log(updateContentData)
+    console.log(textPatched)
     //return false;
+    
     axiosClient.post(`${reactAppData.ajaxURL}`,updateContentData).then(async response => {
       
       if(response.data.success){
@@ -102,9 +104,9 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     
     dmp.Diff_EditCost = parseInt(process.env.REACT_APP_DIFF_EDITCOST)
 
-    let origContent = convertUnicode(editFile.origContent);
+    let oldContent = convertUnicode(editFile.oldContent);
     let newContent = convertUnicode(editorRef.current.getContent());
-    let diff = dmp.diff_main(origContent, newContent);
+    let diff = dmp.diff_main(oldContent, newContent);
     
     //dmp.diff_cleanupEfficiency(diff);
     dmp.diff_cleanupSemantic(diff);
@@ -116,9 +118,8 @@ const EditFile = ({shareDoc, setShareDoc}) => {
     
     //let encodedOrigContent = convertHTML(editFile.origContent);
     //let encodedNewContent = convertHTML(newContent);
-      console.log(editFile.origContent);
-      console.log(editorRef.current.getContent());
-    const diffhtml = HtmlDiff.execute(editFile.origContent, editorRef.current.getContent());
+      
+    const diffhtml = HtmlDiff.execute(editFile.oldContent, editorRef.current.getContent());
     setEditFile((prev) => { 
       return {
         ...prev,
@@ -173,6 +174,7 @@ const EditFile = ({shareDoc, setShareDoc}) => {
           mammoth.convertToHtml({arrayBuffer : rawLog})
           .then(result => {
             var html = result.value; // The generated HTML
+            let userContent = '';
             const dmp = new DiffMatchPatch();
             
             let chains = responseData.chains?.filter((chain) => {
@@ -180,31 +182,26 @@ const EditFile = ({shareDoc, setShareDoc}) => {
             });
             let counter = 1;
             let patch;
-            chains?.forEach(val => {
-              console.log(val.data.oldContent)
-              if(counter == 1){
-                html = convertUnicode(val.data.newContent,true);
-                patch = dmp.patch_fromText(val.data.patch)
-              }else{
-                html = dmp.patch_apply(patch, val.data.newContent)
-              }
-              
-              
-              //console.log(patched)
-
-              
-              counter++;
-            });
-            console.log(html)
+            let lastContent = '';
+            let lastEdit = chains?.slice(-1)
+            
+            if(lastEdit?.length){
+              userContent = convertUnicode(lastEdit[0].data.newContent,true);
+            }
+            
+            userContent = (userContent === '' ? html: userContent)
             setEditFile((prev) => { 
               return {
                 ...prev,
+                //userContent: userContent,
                 origContent: html,
+                oldContent: userContent,
                 postID: responseData.post_id
               }
             });
             var messages = result.messages; // Any messages, such as warnings during conversion
-            editorRef.current.setContent(html);
+
+            editorRef.current.setContent(userContent);
           })
           .catch(function(error) {
               console.error(error);

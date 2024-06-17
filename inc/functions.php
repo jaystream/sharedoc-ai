@@ -388,11 +388,12 @@ function getFile()
             $bc = new Blockchain();
             $bc->setChains($postID);
             $chains = $bc->chains;
-            
-            $chains = array_values(array_filter($chains, function($v) use ($currentUser) {
+            $latestBlock = $bc->getLatestBlock();
+
+            /* $chains = array_values(array_filter($chains, function($v) use ($currentUser) {
             
                 return $v->data['author'] == $currentUser->ID && $v->type == 'suggestion';
-            }));
+            })); */
             
             $data = [
                 'title' => get_field('file_hash'),
@@ -402,6 +403,7 @@ function getFile()
                 'mime_type' => get_field('mime_type'),
                 'file_key' => $fileKey,
                 'chains' => $chains,
+                //'latestBlock' => $latestBlock,
                 'isAuthorized' => true
             ];
         endwhile;
@@ -454,6 +456,10 @@ function getFileHistory()
         wp_send_json_error ( 'Busted!', 403);
     }
     global $wpdb;
+
+    $colors = [
+        '#8193FF','#FF1C01', '#004EFF','#009912','#A836FF','#FF14FF','#FF6116','#00E673','#FF3393', '#977AFF'
+    ];
     $user = wp_get_current_user();
     
     $fileHash = $_GET['file_hash'];
@@ -489,19 +495,27 @@ function getFileHistory()
                 'last_name' => $owner->last_name,
                 'email' => $owner->user_email,
                 'display_name' => $owner->display_name,
+                'color' => $colors[0],
                 'id' => $owner->ID
             ];
+            $userCounter = 1;
             foreach ($emails as $email) {
+                if($userCounter > count($colors)){
+                    $userCounter = 0;
+                }
                 $email_permissions[] = $email['email'];
                 if($user = get_user_by('email', $email['email'])){
+                    
                     $collaborators[$user->ID] = [
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
                         'email' => $user->user_email,
                         'display_name' => $owner->display_name,
+                        'color' => $colors[$userCounter],
                         'id' => $user->ID
                     ];
                 }
+                $userCounter++;
             }
             
             if(!$isAuthorized){
@@ -515,6 +529,10 @@ function getFileHistory()
             $bc = new Blockchain();
             $bc->setChains($postID);
             $chains = $bc->chains;
+
+            foreach($chains as &$chain){
+                $chain->version = hash('crc32b',$chain->index);
+            }
 
             $fileEdits = [];
             $changes = [];
@@ -564,8 +582,8 @@ function getFileHistory()
                 'isAuthorized' => $isAuthorized,
                 'collaborators' => $collaborators,
                 'chains' => $chains,
-                'changes' => $changes,
-                'fileEdits' => $fileEdits                
+                //'changes' => $changes,
+                //'fileEdits' => $fileEdits                
             ];
         endwhile;
     }
@@ -587,11 +605,12 @@ function updateContent()
     }
 
     $user = wp_get_current_user();
-    extract($_POST);
+    extract(wp_unslash($_POST));
     
     $data = array(
         'post_id' => $postID,
         'author' => $user->ID,
+        //'userContent' => $userContent,
         'oldContent' => $oldContent,
         'newContent' => $newContent,
         'changes' => $edits,
