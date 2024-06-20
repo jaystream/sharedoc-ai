@@ -7,30 +7,42 @@ class Blockchain
 {
     public array $chains = [];
     public string $branch;
+    
+    public string $type;
 
     public bool $hasChains = false;
-    public function __construct($postID = false, $data = [], $branch = 'origin' )
+    public function __construct($postID = false, $data = [], $branch = 'origin', $type = 'origin' )
     {   
-        $this->branch = $branch;
         if($postID){
             $this->setChains($postID);
-            $this->chains[] = $this->createSDBlock($postID, $data);
+            $this->chains[] = $this->createSDBlock($postID, $data, $branch, $type);
         }
     }
 
-    public function setChains($postID = false, $branch = 'origin'){
+    public function setChains($postID = false, $type="all"){
         global $wpdb;
-
-        $this->branch = $branch;
+        $this->type = $type;
         if($postID){
+            if($type == 'all'){
+                $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
+            }else{
+                $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID} AND type='".$type."'", OBJECT );
+            }
             
-            $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
             if($result){
                 $this->hasChains = true;
                 
                 foreach ($result as $key => $value) {
                     $block = new Block();
-                    $block->setBlock($value->post_id, $value->n_version, $value->time, json_decode($value->data,true), $value->prev_block_hash, $value->block_hash);
+                    $block->id = $value->id;
+                    $block->setBlock(
+                        $value->post_id,
+                        $value->n_version,
+                        strtotime($value->time),
+                        json_decode($value->data,true),
+                        $value->prev_block_hash,
+                        $value->block_hash
+                    );
                     $block->type = $value->type;
                     $this->chains[] = $block;
                     
@@ -43,13 +55,19 @@ class Blockchain
         
     }
 
-    public function createSDBlock($postID = false, $data = [],$branch = 'origin'): Block
+    public function createSDBlock($postID = false, $data = [],$branch = 'origin', $type='origin'): Block
     {
         global $wpdb;
         $this->branch = $branch;
-        $type = 'origin';
+        $this->type = $type;
+        
         if(count($this->chains) > 0){
-            $block = $this->addBlock($postID, count($this->chains) + 1, time(), $data);
+            $block = $this->addBlock(
+                $postID,
+                count($this->chains) + 1, 
+                time(),
+                $data
+            );
             $type = 'suggestion';
         }else{
             $block = new Block();
@@ -99,7 +117,13 @@ class Blockchain
     {
         $newBlock = new Block();
         $prevHash = $this->getLatestBlock()->hash;
-        $newBlock->newBlock($postID, $index, $timestamp, $data, $prevHash);
+        $newBlock->newBlock(
+            $postID,
+            $index,
+            $timestamp,
+            $data,
+            $prevHash
+        );
         $newBlock->previousHash = $prevHash;
         $newBlock->hash = $newBlock->calculateHash();
         $this->chains[] = $newBlock;
@@ -109,14 +133,16 @@ class Blockchain
 
     public function isChainValid(): bool
     {
+        
         for ($i = 1, $chainLength = count($this->chains); $i < $chainLength; $i++) {
+            
             $currentBlock = $this->chains[$i];
             $previousBlock = $this->chains[$i - 1];
-
+            
             if ($currentBlock->hash !== $currentBlock->calculateHash()) {
                 return false;
             }
-
+            
             if ($currentBlock->previousHash !== $previousBlock->hash) {
                 return false;
             }

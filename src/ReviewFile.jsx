@@ -41,6 +41,72 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
     
   }
 
+
+  /**
+   * Get collaborators approval statuses
+   * 
+   * @param {object} edits 
+   */
+  const approvalStatus = edits => {
+    let noResponse = edits?.approvalStatus?.filter((v,i)=>{
+      return v.status == 0 && v.author != content.current_user_id && edits.author != v.author;
+    })
+
+    
+    let approves = edits?.approvalStatus?.filter((v,i)=>{
+      return v.status == 1 && v.author != content.current_user_id && edits.author != v.author;
+    })
+    let declined = edits?.approvalStatus?.filter((v,i)=>{
+      
+      return v.status == 2 && v.author != content.current_user_id && edits.author != v.author;
+    })
+
+    return (
+      <>
+        <p className="text-secondary small">
+          {
+            noResponse?.map((v,i)=>{
+              return content?.collaborators[v.author].first_name+ ' '+ content?.collaborators[v.author].last_name;
+            }).join(', ')+ ' no response'
+          }
+        </p>
+      </>
+    )
+    
+  }
+
+
+  /**
+   * Approve the edited version
+   * 
+   * @param {object} edit 
+   */
+  const approveEdit = edit => {
+    let postData = {
+      'action': 'approveEdit',
+      'nonce': reactAppData.nonce,
+      'hash': edit.hash,
+      'post_id': content.post_id,
+      'auhtor': edit.author,
+      'version':edit.version
+    };
+    
+    axiosClient.post(`${reactAppData.ajaxURL}`,postData).then(response => {
+      
+      console.log(response)
+    }).catch(error => {
+      nsole.error(error);
+    });
+  }
+  /**
+   * Check if chain is valid
+   * 
+   * @param {object} edit 
+   */
+  const isValidChain = (edit)  => {
+    
+  }
+
   String.prototype.replaceAt = function(index, length, author) {
     let replacement = this.substring(index,index+length)
     replacement = '<span class="auid-'+author+'">'+replacement+'</span>'
@@ -193,8 +259,10 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                   version: v.version,
                   author: v.data.author,
                   patches: patched,
+                  hash: v.hash,
                   newContent: v.data.newContent,
-                  oldContent: v.data.oldContent
+                  oldContent: v.data.oldContent,
+                  approvalStatus: v.approvalStatus
                 })
                 
                 
@@ -252,7 +320,13 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
               matchedContent = dmp.diff_prettyHtml(diff);
               matchedContent = convertUnicode(matchedContent,true) */
               
-              matchedContent = HtmlDiff.execute(html, matchedContent);
+              if(typeof matchedContent === "string" && matchedContent.length === 0){
+                matchedContent = html;
+              }else{
+                matchedContent = HtmlDiff.execute(html, matchedContent);
+                
+              }
+                
               
               setContent((prev) => { 
                 return {
@@ -260,10 +334,12 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                   originalContent: convertUnicode(html),
                   oldContent: convertUnicode(oldContent),
                   newContent: newContent,
+                  current_user_id: fileData.current_user_id,
                   matchedContent: matchedContent,
                   isAuthorized: isAuthorized,
                   fileHash: fileHash,
                   title: fileData.title,
+                  post_id: fileData.post_id,
                   histories: edits,
                   chains: fileData.chains,
                   collaborators: fileData.collaborators
@@ -337,23 +413,13 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                             
                             <div className="row">
                               <div className="col">
-                                <a href="" onClick={(e)=>{e.preventDefault()}} title='Version' className=""><span className="badge rounded-pill text-bg-secondary">{val.version}</span></a>
+                                <a href="" onClick={(e)=>{e.preventDefault()}} title='Version' className=""><span className="badge badge-xs rounded-pill text-bg-secondary">{val.version}</span></a>
                               </div>
                             </div>
                             <div className="row">
                               <div className="col-md-4">
                                 <p style={{color:content?.collaborators[val.author]?.color}}>
                                 {content?.collaborators[val.author]?.first_name+ ' '+ content?.collaborators[val.author]?.last_name}</p>
-                                <p><a href="" onClick={(e)=>{
-                                  e.preventDefault();
-                                  
-                                  setContent((prev) => { 
-                                    return {
-                                      ...prev,
-                                      matchedContent: compareEdit(val)
-                                    }
-                                  });
-                                }} className="btn btn-sm btn-secondary text-nowrap rounded-pill position-relative">Compare vs. Orignal Version</a></p>
                               </div>
                               <div className="col-md-4">
                                 <a href="" onClick={(e)=>e.preventDefault()} className="link" 
@@ -366,12 +432,44 @@ const ReviewFile = ({shareDoc, setShareDoc}) => {
                                 />
                               </div>
                               <div className="col-md-4">
-                                <a href="" className="icon me-1">
-                                  <i className="fa-regular fa-2x fa-circle-check text-success"></i>
-                                </a>
-                                <a href="" className="icon">
-                                  <i className="fa-regular fa-2x fa-circle-xmark text-danger"></i>
-                                </a>
+                                
+                                {
+                                  
+                                  (val.author != content.current_user_id) && 
+                                  <div className="row">
+                                    <div className="col-md-12">
+                                      <a href="" onClick={(e) => {
+                                        e.preventDefault();
+                                        approveEdit(val);
+                                      }} className="icon me-1">
+                                        <i className="fa-regular fa-2x fa-circle-check text-success"></i>
+                                      </a>
+                                      <a href="" className="icon">
+                                        <i className="fa-regular fa-2x fa-circle-xmark text-danger"></i>
+                                      </a>
+                                    </div>
+                                  </div>
+                                }
+                              
+                              </div>
+                            </div>
+                            <div className="row">
+                              <div className="col-md-6">
+                                <a href="" onClick={(e)=>{
+                                  e.preventDefault();
+                                  
+                                  setContent((prev) => { 
+                                    return {
+                                      ...prev,
+                                      matchedContent: compareEdit(val)
+                                    }
+                                  });
+                                }} className="btn btn-xs btn-secondary text-nowrap rounded-pill position-relative">Compare vs. Orignal Version</a>
+                              </div>
+                              <div className="col-md-6">
+                                {
+                                  approvalStatus(val)
+                                }
                               </div>
                             </div>
                           </li>

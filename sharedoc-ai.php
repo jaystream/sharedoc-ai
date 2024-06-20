@@ -88,7 +88,7 @@ function sd_install_dbtables()
 
 	$table_bc = $wpdb->prefix . 'blockchain';
     $table_bcedits = $wpdb->prefix . 'blockchain_edits';
-    $table_bchistory = $wpdb->prefix . 'blockchain_history';
+    $table_bcuserapproval = $wpdb->prefix . 'blockchain_user_approval';
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	$charset_collate = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -144,14 +144,27 @@ function sd_install_dbtables()
         `status` tinyint(3) NOT NULL DEFAULT 1,
         `data` longtext DEFAULT NULL CHECK (json_valid(`data`)),
         PRIMARY KEY (`id`),
-        KEY `history_id` (`bc_id`)
+        KEY `bc_id` (`bc_id`)
     ) $charset_collate;";
 
     $sql .= "ALTER TABLE `$table_bcedits` ADD CONSTRAINT `fk_edits_blockchain_id` FOREIGN KEY (`bc_id`) REFERENCES `$table_bc`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;";
 
-    
-	
-	dbDelta( $sql );
+    dbDelta( $sql );
+
+    $sql = "CREATE TABLE IF NOT EXISTS `$table_bcuserapproval` (
+        `id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `bc_id` bigint(20) NOT NULL,
+        `author` int(11) NOT NULL,
+        `action` varchar(20) NOT NULL,
+        `status` tinyint(3) NOT NULL,
+        `time` datetime DEFAULT current_timestamp(),
+        PRIMARY KEY (`id`),
+        KEY `bc_id` (`bc_id`)
+    ) $charset_collate;";
+
+    $sql .= "ALTER TABLE `$table_bcuserapproval` ADD CONSTRAINT `fk_approval_blockchain_id` FOREIGN KEY (`bc_id`) REFERENCES `$table_bc`(`id`) ON DELETE CASCADE ON UPDATE CASCADE; ";
+
+    dbDelta( $sql );
 
 }
 

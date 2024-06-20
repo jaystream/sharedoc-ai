@@ -460,7 +460,7 @@ function getFileHistory()
     $colors = [
         '#8193FF','#FF1C01', '#004EFF','#009912','#A836FF','#FF14FF','#FF6116','#00E673','#FF3393', '#977AFF'
     ];
-    $user = wp_get_current_user();
+    $currentUser = wp_get_current_user();
     
     $fileHash = $_GET['file_hash'];
     $args = array(
@@ -482,7 +482,7 @@ function getFileHistory()
         while( $the_query->have_posts() ) : $the_query->the_post();
             $postID = get_the_ID();
             $attachement = get_field('file');
-            $isOwner = (get_field('email') == $user->user_email);
+            $isOwner = (get_field('email') == $currentUser->user_email);
             $isAuthorized = $isOwner;
 
             $emails = get_field('email_permissions');
@@ -519,7 +519,7 @@ function getFileHistory()
             }
             
             if(!$isAuthorized){
-                $isAuthorized = in_array($user->user_email, $email);
+                $isAuthorized = in_array($currentUser->user_email, $email_permissions);
             }
             $attachmentURL = wp_get_attachment_url($attachement->ID);
             $attachmentMetaData = wp_get_attachment_metadata($attachement->ID);
@@ -528,10 +528,16 @@ function getFileHistory()
             $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain WHERE post_id = {$postID}", OBJECT );
             $bc = new Blockchain();
             $bc->setChains($postID);
+            
             $chains = $bc->chains;
-
+            $usersID = array_map(function ($colllaboratorData) {
+                return $colllaboratorData['id'];
+            }, $collaborators);
+            $usersID = array_values( $usersID);
+            
             foreach($chains as &$chain){
                 $chain->version = hash('crc32b',$chain->index);
+                $chain->approvalStatus = getCollaboratorApprovalStatus($chain->id,$usersID);
             }
 
             $fileEdits = [];
@@ -572,7 +578,8 @@ function getFileHistory()
             }
             $data = [
                 'title' => get_the_title(),
-                'current_user_email' => $user->user_email,
+                'current_user_email' => $currentUser->user_email,
+                'current_user_id' => $currentUser->ID,
                 'is_owner' => $isOwner,
                 'url' => $attachmentURL,
                 'post_id' => get_the_ID(),
@@ -582,6 +589,7 @@ function getFileHistory()
                 'isAuthorized' => $isAuthorized,
                 'collaborators' => $collaborators,
                 'chains' => $chains,
+                'isChainValid' => $bc->isChainValid()
                 //'changes' => $changes,
                 //'fileEdits' => $fileEdits                
             ];
@@ -610,7 +618,6 @@ function updateContent()
     $data = array(
         'post_id' => $postID,
         'author' => $user->ID,
-        //'userContent' => $userContent,
         'oldContent' => $oldContent,
         'newContent' => $newContent,
         'changes' => $edits,
@@ -621,7 +628,7 @@ function updateContent()
     
     $bc = new Blockchain();
     $bc->setChains($postID);
-    $bc->createSDBlock($postID, $data);
+    $bc->createSDBlock($postID, $data,$user->ID,'suggestion');
     wp_send_json_success(true);
 }
 add_action( 'wp_ajax_updateContent', 'updateContent' );
@@ -646,3 +653,73 @@ function publishUnpublish()
     
 }
 add_action( 'wp_ajax_publishUnpublish', 'publishUnpublish' );
+
+function approveEdit()
+{
+    if ( ! wp_verify_nonce( $_POST['nonce'], 'wp_rest' ) ) {
+        wp_send_json_error ( 'Unauthorized access!', 403);
+    }
+    $hash = $_POST['hash'];
+    $postID = $_POST['post_id'];
+    $bc = new Blockchain();
+    $bc->setChains($postID);
+    pre($hash);
+    
+    wp_send_json_success(true);
+}
+add_action( 'wp_ajax_approveEdit', 'approveEdit' );
+
+/**
+ * Get collaborator approval status
+ *
+ * @param [type] $bc_id
+ * @return void
+ */
+function getCollaboratorApprovalStatus($bc_id, $collaborators): array
+{
+    global $wpdb;
+    $users = implode("','", $collaborators);
+    
+    $result = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}blockchain_user_approval WHERE bc_id = {$bc_id} AND author IN('{$users}')", OBJECT );
+    
+    $data = [];
+    $existingAuthors = [];
+    foreach($result as $userApproval){
+        
+        if(!in_array($userApproval->author, $collaborators)){
+            // perform delete if user removed from collaborators
+            $wpdb->delete(
+                $wpdb->prefix.'blockchain_user_approval',
+                array(
+                    'id' => $userApproval->id,
+                )
+            );
+        }else{
+            $existingAuthors[] = $userApproval->author;
+            $data[] = [
+                'author' => $userApproval->author,
+                'status' => $userApproval->status,
+            ];
+        }
+    }
+
+    foreach ($collaborators as $collaborator) {
+        if(!in_array($collaborator, $existingAuthors)){
+            // perform insert if user is missing from user approval database
+            $wpdb->insert(
+                $wpdb->prefix.'blockchain_user_approval',
+                array(
+                    'bc_id' => $bc_id,
+                    'author' => $collaborator,
+                )
+            );
+            $data[] = [
+                'author' => $collaborator,
+                'status' => 0,
+            ];
+        }
+    }
+    
+    
+    return $data;
+}

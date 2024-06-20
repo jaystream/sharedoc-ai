@@ -2,6 +2,7 @@
 class Block
 {
     public int $postID;
+    public int $id;
     public int $index;
     public string $type;
     public string $timestamp;
@@ -30,6 +31,7 @@ class Block
     {
         $this->postID = 0;
         $this->index = 0;
+        $this->type = null;
         $this->timestamp = 0;
         $this->data = [];
         $this->previousHash = null;
@@ -40,6 +42,7 @@ class Block
     {
         $this->postID = $postID;
         $this->index = $index;
+        $this->type = 'origin';
         $this->timestamp = $timestamp;
         $this->data = $data;
         $this->previousHash = $previousHash;
@@ -49,6 +52,7 @@ class Block
 
     public function calculateHash(): string
     {
+        
         return hash(
             'sha256', 
             sprintf(

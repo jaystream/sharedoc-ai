@@ -90,3 +90,16 @@
     height: 75vh;
     overflow-x: auto;
 }
+
+.btn.btn-xs{
+    --bs-btn-padding-y: .15rem;
+    --bs-btn-padding-x: .5rem;
+    --bs-btn-font-size: .75rem;
+}
+
+.badge.badge-xs{
+    --bs-badge-padding-x: 0.65em;
+    --bs-badge-padding-y: 0.35em;
+    --bs-badge-font-size: 0.65em;
+    --bs-badge-font-weight: 300;
+}

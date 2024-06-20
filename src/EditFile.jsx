@@ -171,8 +171,10 @@ const EditFile = ({shareDoc, setShareDoc}) => {
         
         reader.addEventListener("loadend", () => {
           var rawLog = reader.result;
+          
           mammoth.convertToHtml({arrayBuffer : rawLog})
           .then(result => {
+            
             var html = result.value; // The generated HTML
             let userContent = '';
             const dmp = new DiffMatchPatch();
